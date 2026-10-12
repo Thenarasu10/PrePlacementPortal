@@ -60,7 +60,7 @@ With no key the app is 100% offline and uses the deterministic rubric provider.
 ./test.sh
 ```
 
-84 assertions against a throwaway database, covering:
+163 assertions against a throwaway database, covering:
 
 1. **Scoring** - section and overall percentages with weight renormalisation, negative marking, unanswered vs wrong, multi-select exactness.
 2. **Readiness boundaries** - 44.99/45 and 74.99/75 edges, plus custom thresholds from config.
@@ -71,6 +71,8 @@ With no key the app is 100% offline and uses the deterministic rubric provider.
 7. **Planner re-scheduling** - overdue tasks carried into the current week, completion counters, re-plan after new results.
 8. **PRS weighting** - missing components renormalise instead of scoring zero.
 9. **Role-based access over real HTTP** - 401 anonymous/bad token, 403 student→mentor and mentor→admin, 200 for the right role, full assessment flow end to end.
+10. **Sign-in security** - password policy (length, character mix, common-password and email-reuse rejection), salted PBKDF2 with a unique salt per hash, 256-bit session tokens, expiry and revocation on lookup, lockout after repeated failures (429 + Retry-After), identical responses for unknown email vs wrong password, and security response headers.
+11. **Learning library** - every catalogue course points at a real (non-placeholder) external resource, each section has free resources, links are https, and course progress flows through to the catalogue payload.
 
 ### UI smoke test (optional, needs Node)
 
@@ -83,12 +85,51 @@ npm i jsdom                   # once
 node tools/ui-smoke.js
 ```
 
-51 checks over the student, mentor and admin flows: every route renders, the mock test runs and
-submits, the interview scores and finishes, the resume analyser grades, the mentor drawer opens,
-the admin import reports - and no screen leaks `undefined`/`NaN` or falls back to the error state.
-Any uncaught error in the page fails the run.
+68 checks over the student, mentor and admin flows: the login role picker, every route, the Learn
+screen and its external links (`target=_blank`, `rel=noopener`, no `example.com` left anywhere), the
+mock test, the interview, the resume analyser, the profile security panel, the mentor drawer and the
+admin security panel and import - and no screen leaks `undefined`/`NaN` or falls back to the error
+state. Any uncaught error in the page fails the run.
 
-## 5. Architecture notes
+## 5. Sign-in security
+
+Scope-appropriate hardening for a placement-portal demo - no third-party identity provider, no
+payments, nothing that needs a mail server:
+
+| Concern | How it is handled |
+|---|---|
+| Password storage | PBKDF2-HMAC-SHA256, 120,000 iterations, 16-byte random salt per user. The iteration count is stored in the hash, and a hash made with older settings is transparently upgraded on the next sign-in. |
+| Password policy | Minimum 8 characters with an uppercase letter, a lowercase letter and a digit; common passwords and reusing your own email address are rejected. Enforced server-side on sign-up and on password change; the UI only shows a hint meter. |
+| Brute force | 5 failed attempts for one email+IP pair locks it for 15 minutes, then 1 hour, then 4 hours. Locked sign-ins get `429` with a `Retry-After` header, and the correct password is refused while the lock stands. |
+| User enumeration | Unknown email and wrong password return the same status and the same message, and the unknown-email path still performs a PBKDF2 hash so the timing matches. |
+| Sessions | 256-bit `SecureRandom` tokens stored server-side, expiring after 24 hours (checked on every request, not just when pruning). Only the 5 newest sessions per user are kept, expired ones are dropped, and "sign out of all devices" revokes everything immediately. |
+| Transport & headers | `Content-Security-Policy` (self-only scripts, no inline JS), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Permissions-Policy`, and `Strict-Transport-Security` when a proxy reports https. |
+| Audit trail | Every sign-in, failure, lockout, unlock and password change is recorded and surfaced on the admin **Sign-in security** panel, where an operator can also clear a lock. |
+| Authorisation | Every route declares its roles and the check happens server-side on each request - the client never decides what a user may see. |
+
+Not included on purpose (documented rather than half-done): TLS termination, OAuth/SSO, email
+verification, 2FA, and per-account rate limiting beyond sign-in. Those belong to a deployment, not
+to this demo. Passwords are hashed with a JDK-only implementation so there is nothing to install.
+
+## 6. Learning library (the Learn screen)
+
+Students get a **Learn** section built from two seeded datasets, both plain JSON in `data/`:
+
+* `data/courses.json` - the 11-course catalogue. Every course maps to skill ids, so the same
+  entries power the gap recommendations and the catalogue. Each one links out to a real, free,
+  externally hosted resource (IndiaBix, GeeksforGeeks, Khan Academy, NPTEL, NeetCode, HackerRank,
+  freeCodeCamp, Coursera audit, Tech Interview Handbook, takeUforward).
+* `data/resources.json` - 29 free resource links grouped by section (aptitude, logical, coding,
+  core-cs, communication, domain, interview, company), each with a provider, type
+  (course/video/practice/reference/tool), an hour estimate and a one-line reason to use it.
+
+The screen ranks sections by the student's measured accuracy, flags the weakest one as **start
+here**, marks recommended courses, and tracks course progress (`not_started` → `in_progress` →
+`completed`). PlaceIQ never hosts or copies the material - it links out only, and every link opens
+in a new tab with `rel="noopener noreferrer"`. Editing either JSON file re-seeds on the next start
+(content changes are detected by fingerprint, no `--reseed` needed).
+
+## 7. Architecture notes
 
 **Data model (SQLite, `data/*.json` seeded on first run)**
 
@@ -124,7 +165,7 @@ Every response carries a per-component breakdown so the UI can explain what move
 **Section scoring** - each question is worth 1 mark; `sectionPct = awarded / count × 100`; overall is the
 weighted mean over the sections present (aptitude .25, logical .20, coding .25, communication .15, domain .15).
 
-## 6. File structure
+## 8. File structure
 
 ```
 placeiq/
@@ -133,14 +174,15 @@ placeiq/
 ├── data/                         ALL content and tunables (JSON, no code)
 │   ├── config.json               thresholds, weights, adaptive params, planner knobs
 │   ├── questions.json            64 questions: mcq, multi, short, coding, written
-│   ├── courses.json              11 courses mapped to skill ids
+│   ├── courses.json              11 courses mapped to skill ids, each with a real external link
 │   ├── skills.json               skill graph with impact weights and prerequisites
 │   ├── role_keywords.json        resume keyword sets, action verbs, profile checklist
+│   ├── resources.json            29 free external learning links, grouped by section
 │   └── companies/*.json          TCS, Infosys, Zoho, Amazon, Cognizant
 ├── backend/src/placeiq/
 │   ├── Main.java                 HTTP server, routing, role checks, static files, company fit
 │   ├── Db.java                   schema, JSON seeding, demo population
-│   ├── Auth.java                 PBKDF2 hashing, sessions, role helpers
+│   ├── Auth.java                 PBKDF2 hashing, password policy, lockout, session TTL/revocation, audit log
 │   ├── Json.java / Time.java     shared helpers (JSON columns, dates)
 │   ├── Scoring.java              per-question award, aggregates, readiness, improvement, PRS, adaptive model
 │   ├── Assessment.java           start → next → answer → submit, proctoring counters, gamification
@@ -173,7 +215,7 @@ Sound is opt-in synthesised WebAudio (no files, no autoplay) with a per-event ma
 tests it plays only timer warnings and the submit confirmation - never right/wrong - with a visual
 and `aria-live` equivalent for every cue. `DESIGN.md` is the full spec.
 
-## 7. What works vs. what is stubbed
+## 9. What works vs. what is stubbed
 
 **Works end to end:** registration/login with hashed passwords and server-side role checks · adaptive
 assessment with MCQ/multi/short/coding/written · shuffling + tab-switch logging · scoring, readiness and PRS ·
@@ -193,7 +235,7 @@ CRUD, CSV/JSON import with row-level validation, CSV export.
   the paste-text path.
 - **Notifications** - stored and displayed in-app; no email/push infrastructure (out of scope).
 
-## 8. Assumptions
+## 10. Assumptions
 
 1. Single-tenant deployment: one college per instance; mentors are scoped to their own college, admins see all.
 2. Session tokens in localStorage with a 7-day expiry - fine for a prototype, not for production.

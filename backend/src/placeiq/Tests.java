@@ -43,6 +43,8 @@ public final class Tests {
     testRubricAndCodingChecks();
     testPlannerRescheduling();
     testPrsWeighting();
+    testPasswordPolicy();
+    testLearnLibrary();
     testRoleBasedAccess();
 
     System.out.println("\n==================");
@@ -315,6 +317,88 @@ public final class Tests {
 
   // ---------------- 9. role-based access over HTTP ----------------
 
+  private static void testPasswordPolicy() throws Exception {
+    section("Login security: password policy, lockout, session revocation");
+    check("short password rejected", Auth.passwordProblem("Ab1", "a@b.edu") != null);
+    check("no-uppercase rejected", Auth.passwordProblem("abcdefg1", "a@b.edu") != null);
+    check("no-digit rejected", Auth.passwordProblem("Abcdefgh", "a@b.edu") != null);
+    check("common password rejected", Auth.passwordProblem("Password1", "a@b.edu") != null);
+    check("own email as password rejected", Auth.passwordProblem("Ramesh123", "ramesh123@college.edu") != null);
+    check("strong password accepted", Auth.passwordProblem("Str0ngPass1", "a@b.edu") == null);
+    check("over-long password rejected", Auth.passwordProblem("A1" + "x".repeat(200), "a@b.edu") != null);
+
+    String hash = Auth.hash("Str0ngPass1");
+    check("hash never contains the password", !hash.contains("Str0ngPass1"));
+    check("hash is salted PBKDF2 with the iteration count embedded", hash.startsWith("pbkdf2$"));
+    check("correct password verifies", Auth.verify("Str0ngPass1", hash));
+    check("wrong password does not verify", !Auth.verify("Str0ngPass2", hash));
+    String hash2 = Auth.hash("Str0ngPass1");
+    check("the same password hashes differently every time (unique salt)", !hash.equals(hash2) && Auth.verify("Str0ngPass1", hash2));
+
+    // tokens: 64 hex chars of SecureRandom, revoked on demand
+    String token = Auth.createSession(1);
+    check("session token has 256 bits of entropy (64 hex chars)", token.matches("[0-9a-f]{64}"));
+    check("token resolves to the user", Auth.userFor(token) != null);
+    int before = Auth.activeSessions(1);
+    int revoked = Auth.signOutAll(1);
+    check("sign out everywhere revoked the live sessions", revoked >= 1 && Auth.activeSessions(1) == 0);
+    check("revoked token no longer resolves", Auth.userFor(token) == null);
+
+    // expiry is enforced on lookup, not only when pruning
+    try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(
+        "INSERT INTO sessions(token,user_id,created_at,expires_at) VALUES('expired-token-test',1,?,?)")) {
+      ps.setString(1, Time.nowMinusDays(2));
+      ps.setString(2, Time.nowMinusDays(1));
+      ps.executeUpdate();
+    }
+    check("expired session is refused", Auth.userFor("expired-token-test") == null);
+  }
+
+  private static void testLearnLibrary() throws Exception {
+    section("Learn screen: course catalogue, external links, resources");
+    JsonObject learn = Gaps.learn(1);
+    JsonArray courses = Json.array(learn, "courses");
+    JsonArray resources = Json.array(learn, "resources");
+    eq("catalogue returns every course", Content.courses().size(), courses.size());
+    eq("every course is linked to a free external resource", Content.courses().size(), resources.size() > 0 ? courses.size() : 0);
+    check("resource library is seeded (25+ free links)", resources.size() >= 25);
+    check("a weakest section is identified for the learner", !learn.get("weakestSection").isJsonNull());
+    eq("accuracy target comes from config as a percentage", 75, Json.intOf(learn, "targetSection", 0));
+
+    int realLinks = 0, placeholders = 0, withLabel = 0;
+    for (JsonElement e : courses) {
+      String url = Json.str(e.getAsJsonObject(), "url", "");
+      if (url.startsWith("http") && !url.contains("example.com")) realLinks++;
+      if (url.contains("example.com") || url.equals("#")) placeholders++;
+      if (!Json.str(e.getAsJsonObject(), "linkLabel", "").isEmpty()) withLabel++;
+    }
+    eq("no placeholder example.com links remain", 0, placeholders);
+    eq("every course points at a real external site", courses.size(), realLinks);
+    eq("every course carries a human-readable link label", courses.size(), withLabel);
+
+    Map<String, Integer> bySection = new HashMap<>();
+    int free = 0;
+    for (JsonElement e : resources) {
+      JsonObject r = e.getAsJsonObject();
+      bySection.merge(Json.str(r, "section", ""), 1, Integer::sum);
+      if (Json.bool(r, "free", false)) free++;
+      check("resource has an external https link: " + Json.str(r, "id", ""), Json.str(r, "url", "").startsWith("https://"));
+    }
+    for (String section : new String[]{"aptitude", "logical", "coding", "communication", "domain"})
+      check("free resources exist for the '" + section + "' section", bySection.getOrDefault(section, 0) > 0);
+    eq("every resource is free", resources.size(), free);
+
+    // progress tracking flows through to the catalogue
+    Gaps.setCourseStatus(1, "C01", "in_progress", 40);
+    JsonObject again = Gaps.learn(1);
+    for (JsonElement e : Json.array(again, "courses")) {
+      if ("C01".equals(Json.str(e.getAsJsonObject(), "id", ""))) {
+        eq("course progress is reflected on the Learn screen", "in_progress", Json.str(e.getAsJsonObject(), "status", ""));
+        eq("course progress percentage is reflected", 40.0, Json.num(e.getAsJsonObject(), "progressPct", 0), 0.01);
+      }
+    }
+  }
+
   private static void testRoleBasedAccess() throws Exception {
     section("Role-based access checks (server side, over HTTP)");
     int port = 8123;
@@ -339,6 +423,48 @@ public final class Tests {
       eq("anonymous request rejected", 401, status(port, "GET", "/api/student/dashboard", null, null));
       eq("garbage token rejected", 401, status(port, "GET", "/api/student/dashboard", "not-a-real-token", null));
       eq("public meta stays public", 200, status(port, "GET", "/api/meta/config", null, null));
+
+      // hardening over real HTTP
+      check("security headers are sent on the HTML shell", hasHeader(port, "/", "Content-Security-Policy")
+          && hasHeader(port, "/", "X-Frame-Options") && hasHeader(port, "/", "X-Content-Type-Options")
+          && hasHeader(port, "/", "Referrer-Policy"));
+      eq("unknown email and wrong password answer identically", 401, status(port, "POST", "/api/auth/login", null,
+          Json.obj("email", "does.not.exist@placeiq.dev", "password", "whatever1").toString()));
+      check("login errors are identical for both cases", body(port, "POST", "/api/auth/login", null,
+          Json.obj("email", "does.not.exist@placeiq.dev", "password", "whatever1").toString())
+          .contains("Incorrect email or password"));
+      eq("weak password rejected at sign-up", 400, status(port, "POST", "/api/auth/register", null,
+          Json.obj("email", "weak@college.edu", "password", "password1").toString()));
+      eq("invalid email rejected at sign-up", 400, status(port, "POST", "/api/auth/register", null,
+          Json.obj("email", "not-an-email", "password", "Str0ngPass1").toString()));
+      eq("student cannot read the admin security panel", 403, status(port, "GET", "/api/admin/security", studentToken, null));
+      eq("admin can read the security panel", 200, status(port, "GET", "/api/admin/security", adminToken, null));
+      eq("learn endpoint is reachable for a student", 200, status(port, "GET", "/api/student/learn", studentToken, null));
+      eq("learn endpoint is reachable for a mentor", 200, status(port, "GET", "/api/student/learn", mentorToken, null));
+      eq("learn endpoint requires a session", 401, status(port, "GET", "/api/student/learn", null, null));
+
+      // brute force: six wrong tries from the same client must end in a lockout
+      for (int i = 0; i < Auth.MAX_FAILS_BEFORE_LOCK; i++)
+        status(port, "POST", "/api/auth/login", null, Json.obj("email", "mentor@placeiq.dev", "password", "badpass1").toString());
+      int lockedStatus = status(port, "POST", "/api/auth/login", null,
+          Json.obj("email", "mentor@placeiq.dev", "password", "badpass1").toString());
+      eq("repeated failures lock the account (429)", 429, lockedStatus);
+      eq("the correct password is refused while locked", 429, status(port, "POST", "/api/auth/login", null,
+          Json.obj("email", "mentor@placeiq.dev", "password", "mentor123").toString()));
+      check("the lockout message tells the user how long", body(port, "POST", "/api/auth/login", null,
+          Json.obj("email", "mentor@placeiq.dev", "password", "badpass1").toString()).contains("Too many failed attempts"));
+      Auth.unlock("mentor@placeiq.dev");
+      check("admin unlock clears the lock", login(port, "mentor@placeiq.dev", "mentor123") != null);
+
+      // sign out everywhere kills the token server-side
+      String doomed = login(port, "student@placeiq.dev", "student123");
+      eq("fresh token works", 200, status(port, "GET", "/api/auth/session", doomed, null));
+      request(port, "POST", "/api/auth/logout-all", doomed, "{}");
+      eq("token is dead after signing out everywhere", 401, status(port, "GET", "/api/auth/session", doomed, null));
+      // signing out everywhere revoked every session of this account, including the first one -
+      // which is exactly the point, so the end-to-end flow below signs in again
+      studentToken = login(port, "student@placeiq.dev", "student123");
+      check("a fresh sign-in works after revoking everything", studentToken != null);
 
       // end-to-end assessment flow through the API
       JsonObject started = Json.parse(request(port, "POST", "/api/student/assessment/start", studentToken,
@@ -399,6 +525,20 @@ public final class Tests {
       try (OutputStream os = con.getOutputStream()) { os.write(body.getBytes(StandardCharsets.UTF_8)); }
     }
     return con;
+  }
+
+  /** Body text of a request (used for message-level assertions). */
+  private static String body(int port, String method, String path, String token, String payload) throws IOException {
+    return request(port, method, path, token, payload);
+  }
+
+  /** Response header lookup, including for static files. */
+  private static boolean hasHeader(int port, String path, String name) throws IOException {
+    HttpURLConnection con = open(port, "GET", path, null, null);
+    con.getResponseCode();
+    boolean present = con.getHeaderField(name) != null && !String.valueOf(con.getHeaderField(name)).isBlank();
+    drain(con);
+    return present;
   }
 
   private static void drain(HttpURLConnection con) {

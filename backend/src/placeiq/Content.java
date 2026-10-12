@@ -131,9 +131,23 @@ public final class Content {
       while (r.next()) {
         JsonObject o = Json.obj("id", r.getString("id"), "title", r.getString("title"), "provider", r.getString("provider"),
             "level", r.getString("level"), "hours", r.getDouble("hours"), "url", r.getString("url"),
-            "description", r.getString("description"), "skills", Json.any(r.getString("skills_json")));
+            "description", r.getString("description"), "skills", Json.any(r.getString("skills_json")),
+            "linkLabel", r.getString("link_label"), "free", r.getInt("free") == 1);
         out.add(o);
       }
+    } catch (SQLException ignored) { }
+    return out;
+  }
+
+  /** Free external learning resources (data/resources.json), grouped by the UI on section. */
+  public static JsonArray resources() {
+    JsonArray out = new JsonArray();
+    try (Connection c = Db.get(); Statement s = c.createStatement();
+         ResultSet r = s.executeQuery("SELECT * FROM resources ORDER BY section, hours")) {
+      while (r.next())
+        out.add(Json.obj("id", r.getString("id"), "section", r.getString("section"), "title", r.getString("title"),
+            "provider", r.getString("provider"), "url", r.getString("url"), "type", r.getString("type"),
+            "hours", r.getDouble("hours"), "blurb", r.getString("blurb"), "free", r.getInt("free") == 1));
     } catch (SQLException ignored) { }
     return out;
   }

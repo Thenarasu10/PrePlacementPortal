@@ -13,6 +13,20 @@ public final class Time {
 
   public static String nowMinusDays(int days) { return LocalDateTime.now().minusDays(days).format(ISO); }
 
+  public static String nowPlusHours(int hours) { return LocalDateTime.now().plusHours(hours).format(ISO); }
+
+  public static String nowPlusMinutes(int minutes) { return LocalDateTime.now().plusMinutes(minutes).format(ISO); }
+
+  /** True when an ISO timestamp is in the past. Unparseable values count as expired. */
+  public static boolean isPast(String iso) {
+    try { return LocalDateTime.parse(iso, ISO).isBefore(LocalDateTime.now()); } catch (Exception e) { return true; }
+  }
+
+  public static long minutesUntil(String iso) {
+    try { return Math.max(0, java.time.Duration.between(LocalDateTime.now(), LocalDateTime.parse(iso, ISO)).toMinutes() + 1); }
+    catch (Exception e) { return 0; }
+  }
+
   public static String minusDays(int days) { return LocalDate.now().minusDays(days).toString(); }
 
   public static String plusDays(String from, int days) { return LocalDate.parse(from).plusDays(days).toString(); }

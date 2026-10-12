@@ -77,6 +77,72 @@ public final class Gaps {
     return top;
   }
 
+  /**
+   * Everything the Learn screen needs in one call: the full course catalogue with this
+   * student's progress, the free external resource library, and which sections to start with.
+   */
+  public static JsonObject learn(int userId) {
+    JsonObject progress = courseProgressMap(userId);
+    JsonArray recommended = recommendations(userId);
+    Set<String> recIds = new HashSet<>();
+    for (JsonElement e : recommended) recIds.add(Json.str(e.getAsJsonObject(), "courseId", ""));
+
+    // weakest sections first, from the same ranked gap list that drives recommendations
+    Map<String, Double> accSum = new HashMap<>();
+    Map<String, Integer> accN = new HashMap<>();
+    for (JsonObject g : ranked(userId)) {
+      String sec = Json.str(g, "section", "");
+      accSum.merge(sec, Json.num(g, "accuracy", 0), Double::sum);
+      accN.merge(sec, 1, Integer::sum);
+    }
+    List<JsonObject> sections = new ArrayList<>();
+    for (JsonElement e : Json.array(Db.config(), "sections")) {
+      JsonObject def = e.getAsJsonObject();
+      String id = Json.str(def, "id", "");
+      int n = accN.getOrDefault(id, 0);
+      Double acc = n == 0 ? null : accSum.get(id) / n;
+      sections.add(Json.obj("id", id, "name", Json.str(def, "name", id),
+          "accuracy", acc == null ? null : Math.round(acc * 10) / 10.0, "skillsMeasured", n));
+    }
+    sections.sort((a, b) -> {
+      Double x = a.get("accuracy").isJsonNull() ? null : a.get("accuracy").getAsDouble();
+      Double y = b.get("accuracy").isJsonNull() ? null : b.get("accuracy").getAsDouble();
+      if (x == null && y == null) return 0;
+      if (x == null) return 1;                       // unmeasured sections last
+      if (y == null) return -1;
+      return Double.compare(x, y);
+    });
+    String weakest = sections.isEmpty() || sections.get(0).get("accuracy").isJsonNull()
+        ? null : sections.get(0).get("id").getAsString();
+
+    JsonArray courses = new JsonArray();
+    int tracked = 0, completed = 0;
+    for (JsonElement e : Content.courses()) {
+      JsonObject c = e.getAsJsonObject();
+      String id = Json.str(c, "id", "");
+      JsonObject p = progress.has(id) ? progress.getAsJsonObject(id) : null;
+      String status = p == null ? "not_started" : Json.str(p, "status", "not_started");
+      double pct = p == null ? 0 : Json.num(p, "progressPct", 0);
+      if (p != null) tracked++;
+      if ("completed".equals(status)) completed++;
+      c.addProperty("status", status);
+      c.addProperty("progressPct", pct);
+      c.addProperty("recommended", recIds.contains(id));
+      courses.add(c);
+    }
+
+    JsonArray resources = new JsonArray();
+    for (JsonElement e : Content.resources()) {
+      JsonObject r = e.getAsJsonObject();
+      r.addProperty("matchesWeakest", weakest != null && weakest.equals(Json.str(r, "section", "")));
+      resources.add(r);
+    }
+
+    return Json.obj("courses", courses, "resources", resources, "sections", Json.arr(sections.toArray()),
+        "weakestSection", weakest == null ? null : weakest, "coursesTracked", tracked, "coursesCompleted", completed,
+        "targetSection", Math.round(Json.num(Json.child(Db.config(), "skillGap"), "accuracyTarget", 0.75) * 100));
+  }
+
   public static JsonObject courseProgressMap(int userId) {
     JsonObject map = new JsonObject();
     try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement("SELECT * FROM course_progress WHERE user_id=?")) {

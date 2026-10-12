@@ -48,17 +48,63 @@ async function boot() {
   }
   el('auth').classList.remove('hide');
 }
+const ROLE_INFO = {
+  student: { label: 'Student', note: 'Student view: onboarding, adaptive assessment, skill gaps, a weekly planner, ' +
+      'mock tests, mock interview, resume ATS scan and the free learning library.' },
+  mentor: { label: 'Mentor', note: 'Mentor view: your student roster with at-risk flags, sortable progress table, ' +
+      'student drawers with notes and task assignment, plus the question bank and the learning library.' },
+  admin: { label: 'Admin', note: 'Admin view: cohort analytics and KPIs, readiness distribution, the question bank, ' +
+      'validated CSV/JSON import, CSV export and the sign-in security panel.' }
+};
+let pickedRole = 'student';
+
+function pickRole(role) {
+  pickedRole = role;
+  document.querySelectorAll('[data-role-pick]').forEach(b => {
+    const on = b.dataset.rolePick === role;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  const note = el('roleNote');
+  if (note) note.textContent = ROLE_INFO[role].note;
+  const demo = (state.meta?.demoLogins || []).find(l => l.role === role);
+  if (demo) {                       // prefill the matching demo account, never auto-submit
+    const f = el('loginForm');
+    f.querySelector('[name=email]').value = demo.email;
+    f.querySelector('[name=password]').value = demo.password;
+  }
+  if (el('loginError')) el('loginError').textContent = '';
+}
+
 function renderDemoLogins() {
   const box = el('demoLogins');
   const logins = state.meta?.demoLogins || [];
-  box.innerHTML = logins.map(l => `<button class="demo-btn" data-email="${esc(l.email)}" data-pass="${esc(l.password)}">
+  box.innerHTML = logins.map(l => `<button class="demo-btn" data-email="${esc(l.email)}" data-pass="${esc(l.password)}" data-role="${esc(l.role)}">
       <b>${esc(l.role)}</b><span class="muted small">${esc(l.email)}</span></button>`).join('');
-  box.querySelectorAll('.demo-btn').forEach(b => b.onclick = async () => {
-    el('loginForm').querySelector('[name=email]').value = b.dataset.email;
+  box.querySelectorAll('.demo-btn').forEach(b => b.onclick = () => {
+    pickRole(b.dataset.role);
     el('loginForm').querySelector('[name=password]').value = b.dataset.pass;
     el('loginForm').requestSubmit();
   });
+  document.querySelectorAll('[data-role-pick]').forEach(b => b.onclick = () => pickRole(b.dataset.rolePick));
+  pickRole(pickedRole);
 }
+
+/** Local strength hint only - the server enforces the real policy. */
+function paintStrength(pw) {
+  const met = document.getElementById('pwMeter'), label = document.getElementById('pwStrength');
+  if (!met || !label) return;
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw) && pw.length >= 12) score++;
+  met.className = 'pw-meter' + (pw ? ' s' + score : '');
+  label.textContent = 'Strength: ' + (pw ? ['too weak', 'weak', 'fair', 'good', 'strong'][score] : '-')
+    + ' · the server requires 8+ characters with upper, lower and a digit';
+}
+const pwInput = el('registerForm').querySelector('[name=password]');
+if (pwInput) pwInput.oninput = e => paintStrength(e.target.value);
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
   t.classList.add('active');
@@ -73,7 +119,12 @@ el('loginForm').onsubmit = async (e) => {
       email: f.querySelector('[name=email]').value, password: f.querySelector('[name=password]').value } });
     state.token = out.token; state.user = out.user; localStorage.setItem('placeiq_token', out.token);
     startApp();
-  } catch (err) { el('loginError').textContent = err.message; }
+  } catch (err) {
+    el('loginError').textContent = err.message;
+    el('loginError').classList.add('shake-once');
+    setTimeout(() => el('loginError').classList.remove('shake-once'), 500);
+    Sound.play('incorrect');
+  }
 };
 el('registerForm').onsubmit = async (e) => {
   e.preventDefault();
@@ -213,6 +264,24 @@ async function renderProfile() {
         <button class="btn primary mt" id="pfSave">Save profile</button>
       </div>
       <div class="card">
+        <h2>Sign-in security</h2>
+        <p class="muted small">Your account uses a session token that expires on its own. Revoke everything
+          here if you signed in on a shared or lab computer.</p>
+        <div class="sec-row"><span class="muted small">Active sessions</span><b id="secSessions">-</b></div>
+        <div class="sec-row"><span class="muted small">Session lifetime</span><b>${me.sessionHours || 24} hours</b></div>
+        <div class="sec-row"><span class="muted small">Password storage</span><b>salted PBKDF2-SHA256</b></div>
+        <div class="sec-row"><span class="muted small">Failed-attempt lockout</span><b>5 tries, then 15 min</b></div>
+        <button class="btn mt" id="signOutAll">Sign out of all devices</button>
+        <div class="card tight mt" style="background:var(--surface-2)">
+          <b class="small">Change password</b>
+          <label class="mt">Current password<input id="pwOld" type="password" autocomplete="current-password"></label>
+          <label class="mt">New password<input id="pwNew" type="password" autocomplete="new-password"
+            placeholder="8+ chars, upper + lower + digit"></label>
+          <div class="mt"><button class="btn primary" id="pwChange">Update password</button></div>
+          <p class="tiny muted mt">Changing your password signs out every other device.</p>
+        </div>
+      </div>
+      <div class="card">
         <h2>Sound</h2>
         <p class="muted small">Sounds are optional and off until you enable them. Nothing plays automatically, and during timed tests only the timer warnings and the submit confirmation are allowed - never right/wrong feedback.</p>
         <div class="between mt"><b>Enable sounds</b>
@@ -250,25 +319,48 @@ async function renderProfile() {
   el('soundToggle').onclick = () => { Sound.setEnabled(!Sound.isEnabled()); syncSoundUi(); if (Sound.isEnabled()) Sound.play('stepComplete'); renderProfile(); };
   el('volSlider').oninput = (e) => { Sound.setVolume(e.target.value / 100); el('volOut').textContent = e.target.value + '%'; };
   el('volSlider').onchange = () => Sound.preview('tap');
+  el('signOutAll').onclick = async () => {
+    const out = await api('/auth/logout-all', { method: 'POST' });
+    localStorage.removeItem('placeiq_token');
+    toast('Signed out of ' + out.signedOut + ' session' + (out.signedOut === 1 ? '' : 's'));
+    setTimeout(() => location.reload(), 900);
+  };
+  el('pwChange').onclick = async () => {
+    try {
+      const out = await api('/auth/change-password', { method: 'POST', body: { current: el('pwOld').value, next: el('pwNew').value } });
+      if (out && out.token) { state.token = out.token; localStorage.setItem('placeiq_token', out.token); }
+      Sound.play('stepComplete');
+      toast('Password updated - other devices were signed out');
+      el('pwOld').value = ''; el('pwNew').value = '';
+    } catch (e) { M.shake(el('pwNew')); toast(e.message); }
+  };
+  api('/auth/session').then(sess => {
+    const b = el('secSessions');
+    if (b) b.textContent = sess.activeSessions + (sess.activeSessions === 1 ? ' (this one)' : ' (including this one)');
+  }).catch(() => { });
+
   el('view').querySelectorAll('[data-preview]').forEach(b => b.onclick = () => Sound.preview(b.dataset.preview));
   el('pfTheme').onclick = () => el('themeBtn').click();
   el('pfLogout').onclick = () => el('logoutBtn').click();
 }
 
 const NAV = {
-  student: [['dashboard', '🏠', 'Dashboard'], ['assessment', '📝', 'Assessment'], ['mock', '⏱️', 'Tests'], ['gaps', '🎯', 'Courses'],
-    ['planner', '📅', 'Plan'], ['companies', '🏢', 'Companies'], ['results', '📈', 'Progress'], ['interview', '🎤', 'Interview'],
-    ['resume', '📄', 'Resume'], ['profile', '👤', 'Profile']],
-  mentor: [['mentor', '👥', 'My students'], ['questions', '🏦', 'Question bank'], ['companies', '🏢', 'Companies'], ['profile', '👤', 'Profile']],
+  student: [['dashboard', '🏠', 'Dashboard'], ['assessment', '📝', 'Assessment'], ['mock', '⏱️', 'Tests'], ['learn', '📚', 'Learn'],
+    ['gaps', '🎯', 'Skill gaps'], ['planner', '📅', 'Plan'], ['companies', '🏢', 'Companies'], ['results', '📈', 'Progress'],
+    ['interview', '🎤', 'Interview'], ['resume', '📄', 'Resume'], ['profile', '👤', 'Profile']],
+  mentor: [['mentor', '👥', 'My students'], ['questions', '🏦', 'Question bank'], ['learn', '📚', 'Learning library'],
+    ['companies', '🏢', 'Companies'], ['profile', '👤', 'Profile']],
   admin: [['admin', '📊', 'Cohort analytics'], ['mentor', '👥', 'Student monitor'], ['questions', '🏦', 'Question bank'],
     ['import', '⬆️', 'Data import'], ['companies', '🏢', 'Companies'], ['profile', '👤', 'Profile']]
 };
 /* Mobile: bottom tab bar keeps the five student essentials (spec) */
 const BOTTOM_TABS = ['dashboard', 'mock', 'planner', 'companies', 'profile'];
-const TITLES = { dashboard: 'Dashboard', assessment: 'Assessment', results: 'Progress & history', gaps: 'Courses & skill gaps',
+const TITLES = { dashboard: 'Dashboard', assessment: 'Assessment', results: 'Progress & history', learn: 'Learn - courses & free resources', gaps: 'Skill gaps',
   planner: 'Preparation planner', mock: 'Timed mock tests', interview: 'Mock interview', resume: 'Resume analyzer',
   companies: 'Company explorer', mentor: 'Student monitor', admin: 'Cohort analytics', questions: 'Question bank',
   import: 'Data import', profile: 'Profile & settings' };
+const ROLE_BADGE = { student: '🎓 Student', mentor: '🧑‍🏫 Mentor', admin: '🛡️ Admin' };
+
 function startApp() {
   el('auth').classList.add('hide');
   el('onboarding').classList.add('hide');
@@ -282,6 +374,8 @@ function startApp() {
     `<button data-go="${id}"><span class="ico" aria-hidden="true">${ico}</span><span>${esc(label.split(' ')[0])}</span></button>`).join('');
   el('bottomNav').querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
   el('whoami').innerHTML = `<b>${esc(state.user.name)}</b>${esc(state.user.role)} · ${esc(state.user.college || 'no college set')}`;
+  const chip = el('roleChip');
+  if (chip) { chip.textContent = ROLE_BADGE[role] || role; chip.className = 'role-chip ' + role; }
   el('targetChip').classList.remove('hide');
   el('targetChip').textContent = state.user.targetCompany ? 'Target: ' + state.user.targetCompany : 'No target company yet';
   syncSoundUi();
@@ -330,6 +424,7 @@ async function go(view) {
     if (view === 'dashboard') return await renderDashboard();
     if (view === 'assessment') return await renderAssessmentHome();
     if (view === 'results') return await renderResults();
+    if (view === 'learn') return await renderLearn();
     if (view === 'gaps') return await renderGaps();
     if (view === 'planner') return await renderPlanner();
     if (view === 'mock') return await renderMockHome();
@@ -559,6 +654,13 @@ async function setCourse(id, status, p) {
   await api('/student/courses/' + id + '/status', { method: 'POST', body: { status, progressPct: p } });
   const chip = document.querySelector(`[data-course-chip="${id}"]`);
   if (chip) { chip.className = 'tag ' + (status === 'completed' ? 'good' : 'warn'); chip.textContent = status.replace('_', ' '); }
+  const wrap = document.querySelector(`[data-progress="${id}"]`);   // live feedback on the Learn screen
+  if (wrap) {
+    const bar = wrap.querySelector('.bar > i');
+    if (bar) { bar.style.width = p + '%'; if (status === 'completed') bar.parentElement.classList.add('success'); }
+    const note = wrap.querySelector('[data-course-note]');
+    if (note) note.textContent = status === 'completed' ? 'Completed' : 'In progress - ' + p + '%';
+  }
   if (status === 'completed') { M.milestone(chip, 'Course completed'); toast('Course completed - re-assess to confirm the gap closed'); }
   else { Sound.play('taskCheck'); toast('Course marked ' + status.replace('_', ' ')); }
   if (status === 'completed') setTimeout(() => go(state.view), 900);
@@ -907,6 +1009,126 @@ async function showAttempt(id) {
   openModal(`<h2>${esc(a.label)}</h2>
     <p class="muted small">${esc((a.submittedAt || '').slice(0, 16))} · ${pct(a.overallPct)} · ${esc(a.readiness)} · ${a.violations || 0} proctor flag(s)</p>
     <div class="scroll-x mt"><table><thead><tr><th>Section</th><th>Topic</th><th></th><th>Marks</th><th>Time</th><th>Question</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+}
+
+/* ---------------- learn: course catalogue + free external resources ---------------- */
+const RES_TYPE = { course: 'Course', video: 'Video', practice: 'Practice', reference: 'Reference', tool: 'Timed test' };
+const SECTION_IDS = ['aptitude', 'logical', 'coding', 'communication', 'domain'];
+
+async function renderLearn() {
+  const d = await api('/student/learn');
+  const isStudent = state.user.role === 'student';
+  const courses = d.courses || [], resources = d.resources || [], sections = d.sections || [];
+  const weakest = d.weakestSection;
+  const secName = id => (sections.find(x => x.id === id) || {}).name || id;
+  const recommended = courses.filter(c => c.recommended);
+  const others = courses.filter(c => !c.recommended);
+  const target = d.targetSection || 75;
+
+  const courseCard = c => {
+    const pct = c.progressPct || 0;
+    const started = c.status === 'in_progress' || pct > 0;
+    return `<div class="card tight learn-card">
+      <div class="between"><strong>${esc(c.title)}</strong>
+        <span class="tag ${c.recommended ? 'good' : ''}">${c.recommended ? 'matches your gaps' : esc(c.level)}</span></div>
+      <p class="small muted">${esc(c.description || '')}</p>
+      <div class="row wrap tight-row"><span class="chip">${esc(c.provider)}</span><span class="chip">${c.hours} h</span>
+        <span class="chip">${esc(c.level)}</span>${c.free ? '<span class="chip good">free</span>' : ''}</div>
+      <div class="mt" data-progress="${esc(c.id)}">
+        <div class="between"><span class="tag ${c.status === 'completed' ? 'good' : started ? 'warn' : ''}"
+          data-course-chip="${esc(c.id)}">${c.status === 'completed' ? 'completed' : started ? 'in_progress' : 'not started'}</span>
+          <span class="small muted" data-course-note>${c.status === 'completed' ? 'Completed' : started ? 'In progress - ' + pct + '%' : 'Not started'}</span></div>
+        <div class="bar${c.status === 'completed' ? ' success' : ''}" title="${pct}% complete"><i style="width:${pct}%"></i></div>
+      </div>
+      <div class="row mt">
+        <a class="btn small primary" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer"
+           title="${esc(c.linkLabel || c.url)}">Open free resource ↗</a>
+        ${isStudent ? `<button class="btn small" data-course="${esc(c.id)}">${started ? 'Restart' : 'Start'}</button>
+        <button class="btn small ghost" data-course-done="${esc(c.id)}">Mark complete</button>` : ''}
+      </div>
+      <p class="tiny muted mt">${esc(c.linkLabel || '')}</p>
+    </div>`;
+  };
+
+  const resItem = r => `<div class="res-item">
+    <div class="between"><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer"><b>${esc(r.title)}</b> ↗</a>
+      <span class="tag">${esc(RES_TYPE[r.type] || r.type)}</span></div>
+    <p class="small muted">${esc(r.blurb || '')}</p>
+    <div class="row wrap tight-row"><span class="chip">${esc(r.provider)}</span><span class="chip">~${r.hours} h</span>
+      ${r.free ? '<span class="chip good">free</span>' : ''}${r.matchesWeakest ? '<span class="chip warn">start here</span>' : ''}</div>
+  </div>`;
+
+  const bySection = id => resources.filter(r => r.section === id);
+  const crossCut = resources.filter(r => !SECTION_IDS.includes(r.section));
+
+  el('view').innerHTML = `
+    <div class="card primary-card">
+      <div class="between">
+        <div>
+          <h2>${isStudent ? 'Learn - close your gaps with free resources' : 'Learning library'}</h2>
+          <p class="muted">${isStudent
+            ? `Every course below is free and hosted outside PlaceIQ - links open in a new tab. Your weakest section right now is
+               <b>${esc(secName(weakest))}</b>; the accuracy target is ${target}%.`
+            : 'Free, external resources you can assign to a student. Use the question bank to follow up on what they learn here.'}</p>
+        </div>
+        <div class="ring-wrap small">
+          <svg class="ring" viewBox="0 0 132 132" role="img" aria-label="Courses completed">
+            <circle class="track" cx="66" cy="66" r="58" fill="none" stroke-width="10"></circle>
+            <circle class="val" cx="66" cy="66" r="58" fill="none" stroke-width="10" stroke-linecap="round"
+              transform="rotate(-90 66 66)"></circle>
+            <text class="ring-value" x="66" y="66" text-anchor="middle" dominant-baseline="middle"><tspan id="learnRingNum">0</tspan></text>
+            <text class="ring-sub" x="66" y="86" text-anchor="middle">courses done</text>
+          </svg>
+        </div>
+      </div>
+      <div class="row wrap tight-row mt">
+        ${sections.map((x, i) => `<span class="chip ${x.id === weakest ? 'warn' : ''}" title="${x.accuracy == null ? 'not measured yet' : x.accuracy + '% average accuracy'}">
+          ${i === 0 && x.accuracy != null ? '1. ' : ''}${esc(x.name)} ${x.accuracy == null ? '—' : x.accuracy + '%'}</span>`).join('')}
+      </div>
+      <p class="tiny muted mt">Weakest section first. Every free resource below is grouped the same way.</p>
+    </div>
+
+    <div class="card">
+      <h3>Recommended for you</h3>
+      <p class="muted small">Picked because these courses map to the skills where you are losing the most marks.</p>
+      <div class="grid g2 mt">${recommended.map(courseCard).join('') || '<p class="muted">Take an assessment and your recommendations appear here.</p>'}</div>
+    </div>
+
+    ${weakest && bySection(weakest).length ? `<div class="card">
+      <h3>Start here - ${esc(secName(weakest))}</h3>
+      <p class="muted small">Free material for your weakest section, easiest first.</p>
+      <div class="grid g2 mt">${bySection(weakest).map(resItem).join('')}</div>
+    </div>` : ''}
+
+    <div class="card">
+      <h3>Free learning library</h3>
+      <p class="muted small">Free courses, videos, practice sets and timed tests - no paid links, nothing hosted by PlaceIQ.</p>
+      ${SECTION_IDS.map(id => {
+        const list = bySection(id);
+        if (!list.length || id === weakest) return '';
+        return `<h4 class="mt">${esc(secName(id))}${sections.find(x => x.id === id) && sections.find(x => x.id === id).accuracy != null
+          ? ` <span class="muted small">· ${sections.find(x => x.id === id).accuracy}% accuracy</span>` : ''}</h4>
+          <div class="grid g2 mt">${list.map(resItem).join('')}</div>`;
+      }).join('')}
+      ${crossCut.length ? `<h4 class="mt">Interview, core CS and company prep</h4>
+        <div class="grid g2 mt">${crossCut.map(resItem).join('')}</div>` : ''}
+    </div>
+
+    <div class="card">
+      <h3>Full catalogue</h3>
+      <p class="muted small">All ${courses.length} courses in the catalogue, including the ones outside your current gap list.</p>
+      <div class="grid g2 mt">${others.map(courseCard).join('')}</div>
+    </div>`;
+
+  if (isStudent) {
+    el('view').querySelectorAll('[data-course]').forEach(b => b.onclick = () => setCourse(b.dataset.course, 'in_progress', 30));
+    el('view').querySelectorAll('[data-course-done]').forEach(b => b.onclick = () => setCourse(b.dataset.course, 'completed', 100));
+  }
+  const ring = el('view').querySelector('.ring');
+  if (ring) M.ring(ring, courses.length ? (d.coursesCompleted / courses.length) * 100 : 0, { dur: 700 });
+  const ringNum = document.getElementById('learnRingNum');
+  if (ringNum) ringNum.textContent = d.coursesCompleted + '/' + courses.length;
+  M.stagger(el('view'), '.card', { step: 50 });
 }
 
 /* ---------------- gaps & courses ---------------- */
@@ -1495,15 +1717,61 @@ async function renderAdmin() {
         <p class="small muted mt">${(cohort.sectionAverages || []).filter(s => s.weakest).map(s => esc(s.section)).join(', ') || 'no section below 55%'}</p></div>
       <div class="card"><h3>Readiness distribution</h3><canvas id="adminDist"></canvas></div>
     </div>
+    <div class="card" id="secPanel"><h3>Sign-in security</h3><p class="muted small">Loading the audit trail...</p></div>
     <div class="card"><h3>Cohort roster</h3>
-      <div class="row mb"><button class="btn small" onclick="window.open('/api/admin/export/students','_blank')">Export students CSV</button>
-        <button class="btn small" onclick="window.open('/api/admin/export/attempts','_blank')">Export attempts CSV</button></div>
+      <div class="row mb"><button class="btn small" data-export="/api/admin/export/students">Export students CSV</button>
+        <button class="btn small" data-export="/api/admin/export/attempts">Export attempts CSV</button></div>
       <div class="scroll-x"><table>
         <thead><tr><th>Student</th><th>Assessments</th><th>Latest</th><th>Improvement</th><th>PRS</th><th>At risk</th></tr></thead>
         <tbody>${cohort.students.map(s => `<tr><td>${esc(s.name)}<div class="small muted">${esc(s.college)}</div></td>
           <td>${s.assessments}</td><td>${pct(s.latestPct)}</td><td>${s.improvementPoints} pts</td>
           <td>${Math.round(s.prs)} ${levelTag(s.readiness)}</td>
           <td>${(s.flags || []).map(f => `<span class="tag bad">${esc(f)}</span>`).join(' ') || '<span class="tag good">ok</span>'}</td></tr>`).join('')}</tbody></table></div></div>`;
+  // sign-in security: locked accounts + the audit trail of failed attempts
+  api('/admin/security').then(sec => {
+    const host = el('view').querySelector('#secPanel');
+    if (!host) return;
+    const locked = sec.lockedAccounts || [], events = sec.recentEvents || [];
+    host.innerHTML = `
+      <div class="between"><h3>Sign-in security</h3>
+        <span class="chip ${locked.length ? 'warn' : 'good'}">${locked.length ? locked.length + ' locked' : 'no lockouts'}</span></div>
+      <p class="muted small">${esc(sec.policy.hashing)} · lockout: ${esc(sec.policy.lockout)} · sessions expire after
+        ${sec.policy.sessionHours} h.</p>
+      <div class="grid g2 mt">
+        <div><b class="small">Locked accounts</b>
+          ${locked.map(l => `<div class="sec-row"><div><b class="small">${esc(l.email)}</b>
+              <div class="tiny muted">${l.fails} failed tries · ${l.minutesLeft} min left · ${esc(l.ip || '')}</div></div>
+            <button class="btn small" data-unlock="${esc(l.email)}">Unlock</button></div>`).join('')
+            || '<p class="muted small mt">Nobody is locked out.</p>'}
+        </div>
+        <div><b class="small">Recent sign-in activity</b>
+          ${events.slice(0, 10).map(e => `<div class="sec-row"><div><b class="small">${esc(e.email || '-')}</b>
+              <div class="tiny muted">${esc(e.kind)} · ${esc(e.detail || '')}</div></div>
+            <span class="tiny muted">${esc((e.createdAt || '').slice(5, 16))}</span></div>`).join('')
+            || '<p class="muted small mt">No attempts recorded yet.</p>'}
+        </div>
+      </div>`;
+    host.querySelectorAll('[data-unlock]').forEach(b => b.onclick = async () => {
+      await api('/admin/security/unlock', { method: 'POST', body: { email: b.dataset.unlock } });
+      Sound.play('stepComplete');
+      toast('Lock cleared for ' + b.dataset.unlock);
+      go('admin');
+    });
+  }).catch(() => { });
+
+  el('view').querySelectorAll('[data-export]').forEach(b => b.onclick = () => {
+    // exports are authenticated by the token, so fetch then hand the browser a blob
+    toast('Preparing CSV...');
+    api(b.dataset.export, { raw: true }).then(csv => {
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = b.dataset.export.split('/').pop() + '.csv';
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast('CSV downloaded');
+    });
+  });
   Charts.bars(el('adminSec'), (cohort.sectionAverages || []).map(s => ({ label: s.section, value: s.averagePct })));
   Charts.bars(el('adminDist'), (cohort.readinessDistribution || []).map(r => ({ label: r.level, value: (r.count / Math.max(1, cohort.students.length)) * 100 })));
   el('adminSec').parentElement.insertAdjacentHTML('beforeend', `<p class="summary">Watch list: ${esc((cohort.sectionAverages || []).filter(x => x.weakest).map(x => x.section).join(', ') || 'no section below 55%')}.</p>`);

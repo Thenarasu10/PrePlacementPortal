@@ -15,20 +15,37 @@
   <div class="auth-card card" style="max-width:560px">
     <div class="brand big"><span class="logo">PQ</span><span>PlaceIQ</span></div>
     <p class="muted">Assess, find your gaps, close them, and watch your readiness score climb.</p>
+    <!-- who is signing in: the same secure form, three entry points -->
+    <div class="role-pick mb" role="tablist" aria-label="Choose your role">
+      <button class="role-tab active" data-role-pick="student" role="tab" type="button">
+        <span class="role-ico">🎓</span><b>Student</b><span class="tiny muted">Assess, learn, get placement-ready</span></button>
+      <button class="role-tab" data-role-pick="mentor" role="tab" type="button">
+        <span class="role-ico">🧑‍🏫</span><b>Mentor</b><span class="tiny muted">Monitor students, assign work</span></button>
+      <button class="role-tab" data-role-pick="admin" role="tab" type="button">
+        <span class="role-ico">🛡️</span><b>Admin</b><span class="tiny muted">Cohort analytics, question bank</span></button>
+    </div>
+
     <div class="tabs mb">
       <button class="tab active" data-auth="login" type="button">Sign in</button>
       <button class="tab" data-auth="register" type="button">Create account</button>
     </div>
-    <form id="loginForm" class="stack">
-      <label>Email<input name="email" type="email" value="student@placeiq.dev" required /></label>
-      <label>Password<input name="password" type="password" value="student123" required /></label>
-      <button class="btn primary" type="submit">Sign in</button>
+    <form id="loginForm" class="stack" autocomplete="on">
+      <label>Email<input name="email" type="email" autocomplete="username" value="student@placeiq.dev" required /></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" value="student123" required /></label>
+      <button class="btn primary" type="submit">Sign in securely</button>
       <p class="field-error" id="loginError" role="alert"></p>
+      <p class="tiny muted">Signed in over a session token that expires automatically after 24 hours; repeated
+        failed attempts from one device lock that account for 15 minutes.</p>
     </form>
-    <form id="registerForm" class="stack hide">
-      <label>Full name<input name="name" placeholder="Your name" required /></label>
-      <label>Email<input name="email" type="email" placeholder="you@college.edu" required /></label>
-      <label>Password<input name="password" type="password" minlength="6" placeholder="At least 6 characters" required /></label>
+    <form id="registerForm" class="stack hide" autocomplete="on">
+      <label>Full name<input name="name" placeholder="Your name" autocomplete="name" required /></label>
+      <label>Email<input name="email" type="email" placeholder="you@college.edu" autocomplete="email" required /></label>
+      <label>Password<input name="password" type="password" minlength="8" autocomplete="new-password"
+        placeholder="8+ characters, upper + lower + digit" required /></label>
+      <div class="pw-meter" id="pwMeter" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <p class="tiny muted pw-label" id="pwStrength">Strength: -</p>
+      <p class="tiny muted" id="pwHint">Use at least 8 characters with an uppercase letter, a lowercase letter and a
+        digit. Passwords are stored only as salted PBKDF2-HMAC-SHA256 hashes.</p>
       <div class="row"><label>College<input name="college" placeholder="College name" /></label>
         <label>Branch<input name="branch" placeholder="CSE / ECE / MECH" /></label></div>
       <div class="row"><label>Domain<select name="domain"></select></label>
@@ -39,6 +56,7 @@
     <div class="card tight mt" style="background:var(--surface-2)">
       <strong class="small">Demo logins</strong>
       <div class="grid g3 mt" id="demoLogins"></div>
+      <p class="tiny muted mt" id="roleNote"></p>
     </div>
   </div>
 </section>
@@ -83,6 +101,7 @@
         <input id="globalSearch" placeholder="Search companies, courses, tasks" aria-label="Search" />
       </div>
       <div class="topbar-right">
+        <span class="role-chip" id="roleChip">🎓 Student</span>
         <span class="chip hide" id="targetChip"></span>
         <button class="icon-btn" id="bellBtn" aria-label="Notifications" title="Notifications">🔔<span id="bellCount" class="pill hide">0</span></button>
         <button class="icon-btn" id="profileBtn" aria-label="Profile" title="Profile and settings">👤</button>

@@ -54,6 +54,13 @@ public final class Main {
 
     String param(String key) { return params.getOrDefault(key, ""); }
 
+    /** Client IP for lockout keys: the first X-Forwarded-For hop when behind a proxy. */
+    String ip() {
+      String fwd = ex.getRequestHeaders().getFirst("X-Forwarded-For");
+      if (fwd != null && !fwd.isBlank()) return fwd.split(",")[0].trim();
+      return ex.getRemoteAddress() == null ? "-" : ex.getRemoteAddress().getAddress().getHostAddress();
+    }
+
     int intParam(String key) { try { return Integer.parseInt(params.getOrDefault(key, "0")); } catch (Exception e) { return 0; } }
 
     String q(String key, String fallback) { return query.has(key) ? query.get(key).getAsString() : fallback; }
@@ -77,16 +84,47 @@ public final class Main {
     // ---------------- public ----------------
     route("POST", "/api/auth/login", "public", ctx -> {
       JsonObject b = ctx.body;
-      int uid = Auth.login(Json.str(b, "email", ""), Json.str(b, "password", ""));
-      if (uid == -1) throw new HttpError(401, "No account with that email.");
-      if (uid == -2) throw new HttpError(401, "Incorrect password.");
+      String email = Json.str(b, "email", "").trim().toLowerCase();
+      String ip = ctx.ip();
+      int uid = Auth.login(email, Json.str(b, "password", ""), ip);
+      if (uid == -3) {
+        long mins = Auth.lockMinutesLeft(email, ip);
+        throw new HttpError(429, "Too many failed attempts. Try again in " + Math.max(1, mins) + " minute"
+            + (mins == 1 ? "" : "s") + ".");
+      }
+      if (uid < 0)   // unknown email and wrong password answer identically on purpose
+        throw new HttpError(401, "Incorrect email or password.");
       String token = Auth.createSession(uid);
-      Content.log(uid, "login", "login from api");
-      return Json.obj("token", token, "user", Auth.me(uid));
+      Content.log(uid, "login", "signed in from " + ip);
+      JsonObject me = Auth.me(uid);
+      me.addProperty("activeSessions", Auth.activeSessions(uid));
+      me.addProperty("sessionHours", Auth.SESSION_HOURS);
+      return Json.obj("token", token, "user", me);
+    });
+    route("GET", "/api/auth/session", "student,mentor,admin", ctx -> Json.obj(
+        "activeSessions", Auth.activeSessions(ctx.userId()), "sessionHours", Auth.SESSION_HOURS,
+        "role", ctx.role()));
+    route("POST", "/api/auth/change-password", "student,mentor,admin", ctx -> {
+      String problem = Auth.changePassword(ctx.userId(), Json.str(ctx.body, "current", ""),
+          Json.str(ctx.body, "next", ""), Json.str(ctx.user, "email", ""));
+      if (problem != null) throw new HttpError(400, problem);
+      Auth.signOutAll(ctx.userId());   // every other device must sign in again
+      String token = Auth.createSession(ctx.userId());   // ...this one stays usable
+      return Json.obj("ok", true, "token", token, "note", "Other sessions were revoked.");
+    });
+    route("POST", "/api/auth/logout-all", "student,mentor,admin", ctx -> {
+      int n = Auth.signOutAll(ctx.userId());
+      return Json.obj("signedOut", n, "note", "All sessions for this account were revoked.");
     });
     route("POST", "/api/auth/register", "public", ctx -> {
+      String email = Json.str(ctx.body, "email", "").trim().toLowerCase();
+      if (!email.matches("^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$"))
+        throw new HttpError(400, "Enter a valid email address.");
+      String weak = Auth.passwordProblem(Json.str(ctx.body, "password", ""), email);
+      if (weak != null) throw new HttpError(400, weak);
+      if (Json.str(ctx.body, "name", "").length() > 120) throw new HttpError(400, "That name is too long.");
       JsonObject user = Auth.register(ctx.body);
-      if (user == null) return Json.obj("error", "Email already registered or password shorter than 6 characters.");
+      if (user == null) throw new HttpError(409, "That email is already registered - sign in instead.");
       String token = Auth.createSession(Json.intOf(user, "id", 0));
       Content.notify(Json.intOf(user, "id", 0), "Welcome to PlaceIQ",
           "Start with the diagnostic assessment - it takes about 20 minutes and unlocks your gap analysis.", Time.today());
@@ -127,6 +165,7 @@ public final class Main {
     route("GET", "/api/student/gaps", "student,admin", ctx -> Json.obj("gaps", Json.arr(Gaps.ranked(ctx.userId()).toArray()),
         "recommendations", Gaps.recommendations(ctx.userId())));
     route("GET", "/api/student/recommendations", "student,admin", ctx -> Gaps.recommendations(ctx.userId()));
+    route("GET", "/api/student/learn", "student,mentor,admin", ctx -> Gaps.learn(ctx.userId()));
     route("POST", "/api/student/courses/{id}/status", "student,admin", ctx ->
         Gaps.setCourseStatus(ctx.userId(), ctx.param("id"), Json.str(ctx.body, "status", "in_progress"), Json.num(ctx.body, "progressPct", 50)));
     route("GET", "/api/student/reviews", "student,admin", ctx -> Json.arr(Gaps.dueReviews(ctx.userId()).toArray()));
@@ -187,6 +226,13 @@ public final class Main {
     route("GET", "/api/mentor/cohort", "mentor,admin", ctx -> MentorAdmin.cohort(ctx.user));
 
     // ---------------- admin ----------------
+    route("GET", "/api/admin/security", "admin", ctx -> Json.obj(
+        "lockedAccounts", Auth.lockedAccounts(), "recentEvents", Auth.securityLog(20),
+        "policy", Json.obj("maxFails", Auth.MAX_FAILS_BEFORE_LOCK, "sessionHours", Auth.SESSION_HOURS,
+            "hashing", "PBKDF2-HMAC-SHA256, 120000 iterations, per-user salt", "lockout", "15 min, then 1 h, then 4 h")));
+    route("POST", "/api/admin/security/unlock", "admin", ctx -> Json.obj(
+        "cleared", Auth.unlock(Json.str(ctx.body, "email", "")),
+        "lockedAccounts", Auth.lockedAccounts()));
     route("GET", "/api/admin/cohort", "admin", ctx -> MentorAdmin.cohort(ctx.user));
     route("GET", "/api/admin/questions", "admin", ctx -> MentorAdmin.questionBank(ctx.q("section", null), ctx.q("domain", null)));
     route("POST", "/api/admin/questions", "admin", ctx -> MentorAdmin.saveQuestion(ctx.body));
@@ -332,6 +378,7 @@ public final class Main {
       }
       send(ex, 404, Json.obj("error", "Unknown endpoint: " + method + " " + path));
     } catch (HttpError e) {
+      if (e.status == 429) ex.getResponseHeaders().add("Retry-After", "900");
       send(ex, e.status, Json.obj("error", e.getMessage()));
     } catch (IOException clientWentAway) {
       // client disconnected mid-response; nothing to report
@@ -371,9 +418,28 @@ public final class Main {
     }
   }
 
+  /** Baseline hardening applied to every response (API and static files). */
+  static void securityHeaders(HttpExchange ex, boolean isHtml) {
+    Headers h = ex.getResponseHeaders();
+    h.add("X-Content-Type-Options", "nosniff");
+    h.add("X-Frame-Options", "DENY");
+    h.add("Referrer-Policy", "no-referrer");
+    h.add("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+    h.add("Cross-Origin-Opener-Policy", "same-origin");
+    if (isHtml) {
+      // the SPA is self-contained: no CDN scripts, no fonts to fetch, only its own API
+      h.add("Content-Security-Policy",
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+          + "font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
+    }
+    if ("https".equalsIgnoreCase(ex.getRequestHeaders().getFirst("X-Forwarded-Proto")))
+      h.add("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+
   private static void send(HttpExchange ex, int status, Object payload) {
     try {
       byte[] bytes = Json.GSON.toJson(payload).getBytes(StandardCharsets.UTF_8);
+      securityHeaders(ex, false);
       ex.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
       ex.getResponseHeaders().add("Cache-Control", "no-store");
       ex.sendResponseHeaders(status, bytes.length);
@@ -404,6 +470,7 @@ public final class Main {
     types.put("png", "image/png");
     String name = file.getFileName().toString();
     String ext = name.contains(".") ? name.substring(name.lastIndexOf('.') + 1) : "bin";
+    securityHeaders(ex, "html".equals(ext));
     ex.getResponseHeaders().add("Content-Type", types.getOrDefault(ext, "application/octet-stream"));
     ex.sendResponseHeaders(200, bytes.length);
     ex.getResponseBody().write(bytes);

@@ -249,3 +249,25 @@ interaction, and disabled entirely under reduced motion or when sounds are off.
    fetched, so the app still works with no network.
 5. Mentor/admin screens are laid out desktop-first with responsive fallbacks, as specified — they are not
    optimised for phone-sized editing of the question bank.
+
+
+## Sign-in screen and the Learn library (added after the first pass)
+
+**Login.** Three role entry points - *Student / Mentor / Admin* - sit above the same form. Choosing one
+pre-fills that demo account and swaps a one-line description of what the role gets; nothing is
+submitted automatically, so the user always takes the final action. The role accent is carried into
+the app as a chip in the top bar (indigo = student, green = mentor, amber = admin) so nobody is
+unclear about which view they are in. Failed sign-ins shake the error line once (no confetti, no
+sound spam) and the message never says whether the email exists.
+
+**Learn.** The screen is a two-part reading layout: a personalised header (weakest section, accuracy
+target, courses-completed ring) then cards. Course cards are equal-height with chips for provider,
+hours, level and *free*, an SVG progress ring per course, one primary action (`Open free resource ↗`)
+and quiet secondary actions. Resource items are flat bordered rows - title as the link, a type chip,
+provider, hour estimate, and a `start here` chip on the resources that match the weakest section.
+Everything external opens in a new tab with `rel="noopener noreferrer"`.
+
+**Progression.** Sections are always ranked weakest-first (same ordering as the gap engine, so the
+two screens never disagree). Course state moves `not_started → in_progress → completed`, and the
+completion milestone reuses the existing in-card sparkle + `stepComplete` cue rather than inventing a
+new celebration.

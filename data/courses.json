@@ -1,71 +1,181 @@
 {
-  "_note": "Course catalogue. 'skills' maps a course to the skill ids it closes; recommendations are chosen by matching a course's skills to the student's ranked gaps. Replace urls with your own catalogue / LMS links.",
+  "_note": "Course catalogue. 'skills' maps a course to the skill ids it closes; recommendations are chosen by matching a course's skills to the student's ranked gaps. Every entry points at a real, free, externally hosted resource (IndiaBix, GeeksforGeeks, Khan Academy, NPTEL, NeetCode, Coursera audit, Tech Interview Handbook) - swap in your own LMS links if you have them.",
   "courses": [
     {
-      "id": "C01", "title": "Quantitative Aptitude Foundation", "provider": "PlaceIQ Academy",
-      "level": "Beginner", "hours": 18, "url": "https://example.com/courses/quant-foundation",
-      "skills": ["quant.percentages", "quant.ratio", "quant.averages", "quant.numbers"],
-      "description": "Arithmetic backbone for campus tests: percentages, ratios, averages and the number system with 300+ timed drills."
+      "id": "C01",
+      "title": "Quantitative Aptitude Foundation",
+      "provider": "IndiaBix",
+      "level": "Beginner",
+      "hours": 18,
+      "url": "https://www.indiabix.com/aptitude/questions-and-answers/",
+      "skills": [
+        "quant.percentages",
+        "quant.ratio",
+        "quant.averages",
+        "quant.numbers"
+      ],
+      "description": "Arithmetic backbone for campus tests: percentages, ratios, averages and the number system with 300+ timed drills.",
+      "linkLabel": "IndiaBix Aptitude - topic-wise practice tests",
+      "free": true
     },
     {
-      "id": "C02", "title": "Time, Speed, Work & Profit-Loss Sprint", "provider": "PlaceIQ Academy",
-      "level": "Intermediate", "hours": 14, "url": "https://example.com/courses/tsd-profitloss",
-      "skills": ["quant.timework", "quant.profitloss"],
-      "description": "High-frequency NQT/TCS-style word problems solved with shortcut ratios and elimination techniques."
+      "id": "C02",
+      "title": "Time, Speed, Work & Profit-Loss Sprint",
+      "provider": "IndiaBix",
+      "level": "Intermediate",
+      "hours": 14,
+      "url": "https://www.indiabix.com/aptitude/time-and-distance/",
+      "skills": [
+        "quant.timework",
+        "quant.profitloss"
+      ],
+      "description": "High-frequency NQT/TCS-style word problems solved with shortcut ratios and elimination techniques.",
+      "linkLabel": "IndiaBix - Time & Distance, Time & Work, Profit & Loss",
+      "free": true
     },
     {
-      "id": "C03", "title": "Permutation, Probability & Combinatorics", "provider": "PlaceIQ Academy",
-      "level": "Advanced", "hours": 12, "url": "https://example.com/courses/perm-prob",
-      "skills": ["quant.permcomb"],
-      "description": "Counting principles, conditional probability and the exam patterns that repeat every season."
+      "id": "C03",
+      "title": "Permutation, Probability & Combinatorics",
+      "provider": "Khan Academy",
+      "level": "Advanced",
+      "hours": 12,
+      "url": "https://www.khanacademy.org/math/statistics-probability/probability-library",
+      "skills": [
+        "quant.permcomb"
+      ],
+      "description": "Counting principles, conditional probability and the exam patterns that repeat every season.",
+      "linkLabel": "Khan Academy - Probability and combinatorics (free course)",
+      "free": true
     },
     {
-      "id": "C04", "title": "Logical Reasoning Mastery", "provider": "PlaceIQ Academy",
-      "level": "Intermediate", "hours": 16, "url": "https://example.com/courses/logic-mastery",
-      "skills": ["logic.series", "logic.syllogism", "logic.bloodrel", "logic.direction"],
-      "description": "Series, syllogisms, blood relations and direction sense with a decision-tree approach to each family."
+      "id": "C04",
+      "title": "Logical Reasoning Mastery",
+      "provider": "IndiaBix",
+      "level": "Intermediate",
+      "hours": 16,
+      "url": "https://www.indiabix.com/logical-reasoning/questions-and-answers/",
+      "skills": [
+        "logic.series",
+        "logic.syllogism",
+        "logic.bloodrel",
+        "logic.direction"
+      ],
+      "description": "Series, syllogisms, blood relations and direction sense with a decision-tree approach to each family.",
+      "linkLabel": "IndiaBix Logical Reasoning - series, syllogism, blood relations",
+      "free": true
     },
     {
-      "id": "C05", "title": "Puzzles, Seating & Data Interpretation", "provider": "PlaceIQ Academy",
-      "level": "Advanced", "hours": 20, "url": "https://example.com/courses/puzzles-di",
-      "skills": ["logic.puzzles", "logic.datainterp"],
-      "description": "Speed-reading tables and charts plus grid-based puzzle framing for elimination-first solving."
+      "id": "C05",
+      "title": "Puzzles, Seating & Data Interpretation",
+      "provider": "GeeksforGeeks",
+      "level": "Advanced",
+      "hours": 20,
+      "url": "https://www.geeksforgeeks.org/puzzles/",
+      "skills": [
+        "logic.puzzles",
+        "logic.datainterp"
+      ],
+      "description": "Speed-reading tables and charts plus grid-based puzzle framing for elimination-first solving.",
+      "linkLabel": "GeeksforGeeks - Puzzles with worked solutions",
+      "free": true
     },
     {
-      "id": "C06", "title": "DSA in Java: Arrays to DP", "provider": "PlaceIQ Academy",
-      "level": "Intermediate", "hours": 40, "url": "https://example.com/courses/dsa-java",
-      "skills": ["code.arrays", "code.sorting", "code.hashing", "code.complexity", "code.linkedlist"],
-      "description": "Pattern-based DSA: two pointers, sliding window, prefix sums, hashing maps and complexity reasoning in Java."
+      "id": "C06",
+      "title": "DSA in Java: Arrays to DP",
+      "provider": "GeeksforGeeks",
+      "level": "Intermediate",
+      "hours": 40,
+      "url": "https://www.geeksforgeeks.org/learn-data-structures-and-algorithms-dsa-tutorial/",
+      "skills": [
+        "code.arrays",
+        "code.sorting",
+        "code.hashing",
+        "code.complexity",
+        "code.linkedlist"
+      ],
+      "description": "Pattern-based DSA: two pointers, sliding window, prefix sums, hashing maps and complexity reasoning in Java.",
+      "linkLabel": "GeeksforGeeks - DSA tutorial (Java examples throughout)",
+      "free": true
     },
     {
-      "id": "C07", "title": "Recursion & Dynamic Programming Patterns", "provider": "PlaceIQ Academy",
-      "level": "Advanced", "hours": 26, "url": "https://example.com/courses/dp-patterns",
-      "skills": ["code.recursion", "code.dp"],
-      "description": "The 12 DP patterns that cover most product-company online rounds, plus interview-grade recursion trees."
+      "id": "C07",
+      "title": "Recursion & Dynamic Programming Patterns",
+      "provider": "NeetCode",
+      "level": "Advanced",
+      "hours": 26,
+      "url": "https://neetcode.io/roadmap",
+      "skills": [
+        "code.recursion",
+        "code.dp"
+      ],
+      "description": "The 12 DP patterns that cover most product-company online rounds, plus interview-grade recursion trees.",
+      "linkLabel": "NeetCode roadmap - recursion and dynamic programming",
+      "free": true
     },
     {
-      "id": "C08", "title": "Placement Communication Lab", "provider": "PlaceIQ Academy",
-      "level": "Beginner", "hours": 10, "url": "https://example.com/courses/comm-lab",
-      "skills": ["comm.grammar", "comm.reading", "comm.email"],
-      "description": "Grammar essentials, reading speed and professional email/CV language for campus recruiters."
+      "id": "C08",
+      "title": "Placement Communication Lab",
+      "provider": "Coursera",
+      "level": "Beginner",
+      "hours": 10,
+      "url": "https://www.coursera.org/learn/wharton-communication-skills",
+      "skills": [
+        "comm.grammar",
+        "comm.reading",
+        "comm.email"
+      ],
+      "description": "Grammar essentials, reading speed and professional email/CV language for campus recruiters.",
+      "linkLabel": "Coursera - Improving Communication Skills (free to audit)",
+      "free": true
     },
     {
-      "id": "C09", "title": "Interview Answer Frameworks & Group Discussion", "provider": "PlaceIQ Academy",
-      "level": "Intermediate", "hours": 12, "url": "https://example.com/courses/interview-frameworks",
-      "skills": ["comm.structuring", "comm.gd"],
-      "description": "STAR and PREP frameworks, self-introduction drilling and group-discussion entry and closure tactics."
+      "id": "C09",
+      "title": "Interview Answer Frameworks & Group Discussion",
+      "provider": "Tech Interview Handbook",
+      "level": "Intermediate",
+      "hours": 12,
+      "url": "https://www.techinterviewhandbook.org/behavioral-interview/",
+      "skills": [
+        "comm.structuring",
+        "comm.gd"
+      ],
+      "description": "STAR and PREP frameworks, self-introduction drilling and group-discussion entry and closure tactics.",
+      "linkLabel": "Tech Interview Handbook - behavioural interview frameworks",
+      "free": true
     },
     {
-      "id": "C10", "title": "Core CS: DBMS, OS, Networks & OOP", "provider": "PlaceIQ Academy",
-      "level": "Intermediate", "hours": 24, "url": "https://example.com/courses/core-cs",
-      "skills": ["dom.dbms", "dom.os", "dom.networks", "dom.oops", "dom.dsa-core"],
-      "description": "The technical-interview core: normalisation and SQL joins, process scheduling, TCP/IP layers and OOP design."
+      "id": "C10",
+      "title": "Core CS: DBMS, OS, Networks & OOP",
+      "provider": "GeeksforGeeks",
+      "level": "Intermediate",
+      "hours": 24,
+      "url": "https://www.geeksforgeeks.org/dbms/",
+      "skills": [
+        "dom.dbms",
+        "dom.os",
+        "dom.networks",
+        "dom.oops",
+        "dom.dsa-core"
+      ],
+      "description": "The technical-interview core: normalisation and SQL joins, process scheduling, TCP/IP layers and OOP design.",
+      "linkLabel": "GeeksforGeeks - DBMS, OS and Networks revision tracks",
+      "free": true
     },
     {
-      "id": "C11", "title": "Branch Domain Refresher (ECE / Mechanical / Commerce)", "provider": "PlaceIQ Academy",
-      "level": "Beginner", "hours": 15, "url": "https://example.com/courses/domain-refresher",
-      "skills": ["dom.ece", "dom.mech", "dom.commerce"],
-      "description": "Branch-specific fundamentals recruiter screens actually ask, curated per discipline."
+      "id": "C11",
+      "title": "Branch Domain Refresher (ECE / Mechanical / Commerce)",
+      "provider": "NPTEL",
+      "level": "Beginner",
+      "hours": 15,
+      "url": "https://nptel.ac.in/courses",
+      "skills": [
+        "dom.ece",
+        "dom.mech",
+        "dom.commerce"
+      ],
+      "description": "Branch-specific fundamentals recruiter screens actually ask, curated per discipline.",
+      "linkLabel": "NPTEL - free certified courses across engineering domains",
+      "free": true
     }
   ]
 }

@@ -408,3 +408,49 @@ canvas{width:100%;display:block}
   .card.lift:hover{transform:none}
   .enter{opacity:1}
 }
+
+/* ---- Learn screen: course cards and external resource items ---- */
+.learn-card{display:flex;flex-direction:column}
+.learn-card .row{margin-top:auto}
+.res-item{border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;background:var(--surface-2)}
+.res-item a{color:var(--indigo);text-decoration:none;font-size:var(--t14)}
+.res-item a:hover{text-decoration:underline}
+.res-item p{margin:6px 0 8px}
+.tight-row{gap:6px}
+.chip.good{border-color:var(--success);color:var(--success)}
+.chip.warn{border-color:var(--warning);color:var(--warning)}
+h4.mt{margin-top:18px}
+
+/* ---- login: role picker ---- */
+.role-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.role-tab{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);padding:10px 12px;
+  transition:border-color var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-out)}
+.role-tab:hover{border-color:var(--indigo);transform:translateY(-2px)}
+.role-tab.active{border-color:var(--indigo);background:var(--indigo-50)}
+.role-tab .role-ico{font-size:18px;line-height:1}
+.role-tab b{font-size:var(--t14)}
+@media (max-width:640px){.role-pick{grid-template-columns:1fr}}
+
+/* ---- password strength meter ---- */
+.pw-meter{display:flex;gap:4px;margin-top:6px}
+.pw-meter i{height:5px;flex:1;background:var(--surface-2);border-radius:var(--r-full);transition:background var(--dur-fast) var(--ease-out)}
+.pw-meter.s1 i:nth-child(1){background:var(--danger)}
+.pw-meter.s2 i:nth-child(-n+2){background:var(--warning)}
+.pw-meter.s3 i:nth-child(-n+3){background:var(--success)}
+.pw-meter.s4 i{background:var(--success)}
+.pw-label{margin-top:4px}
+
+/* ---- role chip in the top bar ---- */
+.role-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:var(--r-full);
+  border:1px solid var(--line);background:var(--surface-2);font-size:var(--t12);font-weight:600}
+.role-chip.student{border-color:var(--indigo);color:var(--indigo)}
+.role-chip.mentor{border-color:var(--success);color:var(--success)}
+.role-chip.admin{border-color:var(--warning);color:var(--warning)}
+.sec-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.sec-row:last-child{border-bottom:0}
+
+/* ---- login error shake (gentle, respects reduced motion) ---- */
+@keyframes shake-once{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.shake-once{animation:shake-once var(--dur-comp) var(--ease-out)}
+@media (prefers-reduced-motion:reduce){.shake-once{animation:none}}

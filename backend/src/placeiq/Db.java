@@ -45,6 +45,8 @@ public final class Db {
     "  overall_pct REAL, prs REAL, breakdown_json TEXT, created_at TEXT);",
     "CREATE TABLE IF NOT EXISTS courses (id TEXT PRIMARY KEY, title TEXT, provider TEXT, level TEXT, hours REAL, url TEXT,",
     "  skills_json TEXT, description TEXT);",
+    "CREATE TABLE IF NOT EXISTS resources (id TEXT PRIMARY KEY, section TEXT, title TEXT, provider TEXT, url TEXT,",
+    "  type TEXT, hours REAL, blurb TEXT, free INTEGER DEFAULT 1);",
     "CREATE TABLE IF NOT EXISTS skills (id TEXT PRIMARY KEY, name TEXT, section TEXT, impact REAL, prereq_json TEXT);",
     "CREATE TABLE IF NOT EXISTS companies (id TEXT PRIMARY KEY, name TEXT, data_json TEXT);",
     "CREATE TABLE IF NOT EXISTS course_progress (user_id INTEGER, course_id TEXT, status TEXT, progress_pct REAL, updated_at TEXT,",
@@ -75,6 +77,10 @@ public final class Db {
     "  due_date TEXT, is_read INTEGER DEFAULT 0, created_at TEXT);",
     "CREATE TABLE IF NOT EXISTS badges (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, badge TEXT, earned_at TEXT);",
     "CREATE TABLE IF NOT EXISTS xp_log (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, amount INTEGER, reason TEXT, created_at TEXT);",
+    "CREATE TABLE IF NOT EXISTS login_attempts (key TEXT PRIMARY KEY, email TEXT, ip TEXT, fails INTEGER DEFAULT 0,",
+    "  first_at TEXT, last_at TEXT, locked_until TEXT);",
+    "CREATE TABLE IF NOT EXISTS security_events (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, ip TEXT,",
+    "  kind TEXT, detail TEXT, created_at TEXT);",
     "CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);");
 
   public static void init() throws Exception {
@@ -87,9 +93,69 @@ public final class Db {
     try (Connection c = get(); Statement s = c.createStatement()) {
       for (String stmt : SCHEMA.split(";\n")) if (!stmt.isBlank()) s.execute(stmt);
     }
-    boolean force = "true".equals(System.getProperty("placeiq.reseed")) || !hasRows("questions");
-    if (force) seedContent();
+    migrate();
+    // content tables are upserted from data/*.json. Re-seed when the JSON on disk has changed
+    // (fingerprint comparison), when a content table is empty, or when --reseed was passed -
+    // so editing data/*.json takes effect on the next start without wiping the database.
+    boolean force = "true".equals(System.getProperty("placeiq.reseed"));
+    String fingerprint = contentFingerprint();
+    boolean changed = !fingerprint.equals(metaGet("content_fingerprint"));
+    if (force || changed || !hasRows("questions") || !hasRows("resources")) {
+      seedContent();
+      metaSet("content_fingerprint", fingerprint);
+    }
     if (!hasRows("users")) seedDemoUsers();
+  }
+
+  /** Adds columns introduced after a database was first created, so an existing placeiq.db
+      picks up new fields (course link labels, etc.) without a manual delete. */
+  /** Cheap fingerprint of every JSON content file: name, size and modification time. */
+  private static String contentFingerprint() {
+    try {
+      Path data = Json.dataDir();
+      List<String> parts = new ArrayList<>();
+      try (DirectoryStream<Path> ds = Files.newDirectoryStream(data, "*.json")) {
+        for (Path p : ds) parts.add(p.getFileName() + ":" + Files.size(p) + ":" + Files.getLastModifiedTime(p).toMillis());
+      }
+      Path companies = data.resolve("companies");
+      if (Files.isDirectory(companies)) {
+        try (DirectoryStream<Path> ds = Files.newDirectoryStream(companies, "*.json")) {
+          for (Path p : ds) parts.add("c/" + p.getFileName() + ":" + Files.size(p) + ":" + Files.getLastModifiedTime(p).toMillis());
+        }
+      }
+      Collections.sort(parts);
+      long h = 1125899906842597L;
+      for (String part : parts) for (int i = 0; i < part.length(); i++) h = 31 * h + part.charAt(i);
+      return Long.toHexString(h);
+    } catch (Exception e) { return "unknown-" + System.currentTimeMillis(); }
+  }
+
+  private static String metaGet(String key) {
+    try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement("SELECT v FROM meta WHERE k=?")) {
+      ps.setString(1, key);
+      ResultSet r = ps.executeQuery();
+      return r.next() ? r.getString("v") : null;
+    } catch (SQLException e) { return null; }
+  }
+
+  private static void metaSet(String key, String value) {
+    try (Connection c = Db.get(); PreparedStatement ps = c.prepareStatement(
+        "INSERT INTO meta(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v")) {
+      ps.setString(1, key);
+      ps.setString(2, value);
+      ps.executeUpdate();
+    } catch (SQLException ignored) { }
+  }
+
+  private static void migrate() throws SQLException {
+    try (Connection c = get(); Statement s = c.createStatement()) {
+      Set<String> cols = new HashSet<>();
+      try (ResultSet r = s.executeQuery("PRAGMA table_info(courses)")) {
+        while (r.next()) cols.add(r.getString("name"));
+      }
+      if (!cols.contains("link_label")) s.execute("ALTER TABLE courses ADD COLUMN link_label TEXT");
+      if (!cols.contains("free")) s.execute("ALTER TABLE courses ADD COLUMN free INTEGER DEFAULT 1");
+    }
   }
 
   private static boolean hasRows(String table) {
@@ -105,6 +171,7 @@ public final class Db {
     upsertConfigMeta();
     loadSkills(Json.read(data.resolve("skills.json")));
     loadCourses(Json.read(data.resolve("courses.json")));
+    loadResources(Json.read(data.resolve("resources.json")));
     loadQuestions(Json.read(data.resolve("questions.json")));
     Path companies = data.resolve("companies");
     if (Files.isDirectory(companies)) {
@@ -140,10 +207,51 @@ public final class Db {
     }
   }
 
+  private static void loadResources(JsonObject root) throws Exception {
+    try (Connection c = get(); PreparedStatement ps = c.prepareStatement(
+        "INSERT INTO resources(id,section,title,provider,url,type,hours,blurb,free) VALUES(?,?,?,?,?,?,?,?,?) " +
+        "ON CONFLICT(id) DO UPDATE SET section=excluded.section, title=excluded.title, provider=excluded.provider, " +
+        "url=excluded.url, type=excluded.type, hours=excluded.hours, blurb=excluded.blurb, free=excluded.free")) {
+      List<String> keep = new ArrayList<>();
+      for (JsonElement e : Json.array(root, "resources")) {
+        JsonObject o = e.getAsJsonObject();
+        keep.add(Json.str(o, "id", ""));
+        ps.setString(1, Json.str(o, "id", ""));
+        ps.setString(2, Json.str(o, "section", ""));
+        ps.setString(3, Json.str(o, "title", ""));
+        ps.setString(4, Json.str(o, "provider", ""));
+        ps.setString(5, Json.str(o, "url", ""));
+        ps.setString(6, Json.str(o, "type", "course"));
+        ps.setDouble(7, Json.num(o, "hours", 2));
+        ps.setString(8, Json.str(o, "blurb", ""));
+        ps.setInt(9, Json.bool(o, "free", true) ? 1 : 0);
+        ps.addBatch();
+      }
+      ps.executeBatch();
+      prune("resources", keep);   // rows deleted from the JSON should disappear from the app too
+    }
+  }
+
+  /** Removes rows that no longer exist in the source JSON for that content table. */
+  private static void prune(String table, List<String> keep) throws SQLException {
+    try (Connection c = Db.get(); Statement s = c.createStatement()) {
+      if (keep.isEmpty()) { s.executeUpdate("DELETE FROM " + table); return; }
+      StringBuilder in = new StringBuilder();
+      for (int i = 0; i < keep.size(); i++) in.append(i == 0 ? "?" : ",?");
+      try (PreparedStatement ps = c.prepareStatement("DELETE FROM " + table + " WHERE id NOT IN (" + in + ")")) {
+        for (int i = 0; i < keep.size(); i++) ps.setString(i + 1, keep.get(i));
+        ps.executeUpdate();
+      }
+    }
+  }
+
   private static void loadCourses(JsonObject root) throws Exception {
     try (Connection c = get(); PreparedStatement ps = c.prepareStatement(
-        "INSERT INTO courses(id,title,provider,level,hours,url,skills_json,description) VALUES(?,?,?,?,?,?,?,?) " +
-        "ON CONFLICT(id) DO UPDATE SET title=excluded.title, level=excluded.level, hours=excluded.hours, skills_json=excluded.skills_json, description=excluded.description")) {
+        "INSERT INTO courses(id,title,provider,level,hours,url,skills_json,description,link_label,free) " +
+        "VALUES(?,?,?,?,?,?,?,?,?,?) " +
+        "ON CONFLICT(id) DO UPDATE SET title=excluded.title, provider=excluded.provider, level=excluded.level, " +
+        "hours=excluded.hours, url=excluded.url, skills_json=excluded.skills_json, " +
+        "description=excluded.description, link_label=excluded.link_label, free=excluded.free")) {
       for (JsonElement e : Json.array(root, "courses")) {
         JsonObject o = e.getAsJsonObject();
         ps.setString(1, Json.str(o, "id", ""));
@@ -154,6 +262,8 @@ public final class Db {
         ps.setString(6, Json.str(o, "url", "#"));
         ps.setString(7, Json.array(o, "skills").toString());
         ps.setString(8, Json.str(o, "description", ""));
+        ps.setString(9, Json.str(o, "linkLabel", ""));
+        ps.setInt(10, Json.bool(o, "free", true) ? 1 : 0);
         ps.addBatch();
       }
       ps.executeBatch();

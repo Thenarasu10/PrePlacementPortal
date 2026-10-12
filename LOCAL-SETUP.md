@@ -84,15 +84,34 @@ The login screen also has one-click demo buttons, so you never have to type thes
 3. **Start assessment** — questions are adaptive (they get harder as you get them right). The timer slides amber at 5 minutes, red at 1 minute.
 4. **Results** — count-up score, level-up milestone, per-section breakdown, then **Continue to plan**.
 5. **Skill gaps** — ranked weakest-first, each with a matching course. Mark one complete for the sparkle milestone.
-6. **Planner** — your weekly plan with tasks; tick them off and the weekly ring nudges up.
-7. **Mock tests / Mock interview / Resume analyser** — a timed company-pattern paper with a post-test review, a scored mock interview with a rubric, and an ATS scan with a drop-zone for a PDF/DOCX.
-8. **Companies** — TCS, Infosys, Zoho, Amazon, Cognizant. Open one for a fit analysis across its rounds.
-9. **Sound and theme** — the speaker icon in the top bar switches sound on (off by default; it never plays in a timed test beyond timer warnings). The theme toggle switches light/dark.
-10. **Log out, log in as the mentor** — sort the student table, open a student drawer, add a note, assign a task. Then as **admin** — cohort KPIs, the question bank, and CSV import/export.
+7. **Planner** — your weekly plan with tasks; tick them off and the weekly ring nudges up.
+8. **Mock tests / Mock interview / Resume analyser** — a timed company-pattern paper with a post-test review, a scored mock interview with a rubric, and an ATS scan with a drop-zone for a PDF/DOCX.
+9. **Companies** — TCS, Infosys, Zoho, Amazon, Cognizant. Open one for a fit analysis across its rounds.
+10. **Sound and theme** — the speaker icon in the top bar switches sound on (off by default; it never plays in a timed test beyond timer warnings). The theme toggle switches light/dark.
+11. **Log out, log in as the mentor** — sort the student table, open a student drawer, add a note, assign a task. Then as **admin** — cohort KPIs, the question bank, and CSV import/export.
 
 ---
 
-## 6. Useful commands
+## 6. Sign-in security (what the login page enforces)
+
+* The page has three entry points - **Student / Mentor / Admin** - which pre-fill that demo account and
+  explain what the role can see. The form itself is one secure path; which role you actually get is
+  decided by the server on every request, never by the page.
+* Passwords are stored as salted PBKDF2-HMAC-SHA256 (120,000 iterations) and are never logged.
+  New passwords need 8+ characters with upper, lower and a digit.
+* **5 wrong tries from one device locks that account for 15 minutes** (then 1 hour, then 4 hours) -
+  the response is a `429` with a `Retry-After` header, and even the correct password is refused while
+  the lock stands. Wrong password and unknown email give the identical message, so the form cannot be
+  used to discover who has an account.
+* Sessions last 24 hours, are stored server-side and are checked on every request. **Profile → Sign-in
+  security → "Sign out of all devices"** revokes them all; changing your password also signs out every
+  other device.
+* As **admin** you get a **Sign-in security** panel: locked accounts, the recent sign-in audit trail,
+  and an **Unlock** button.
+
+To clear a lock during a demo without the admin panel: `sqlite3 placeiq.db "DELETE FROM login_attempts;"`
+
+## 7. Useful commands
 
 ```bash
 # a different port (e.g. if 8080 is taken)
@@ -114,7 +133,7 @@ npm i jsdom && node tools/ui-smoke.js
 
 ---
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 | Symptom | Fix |
 |---|---|
@@ -122,6 +141,7 @@ npm i jsdom && node tools/ui-smoke.js
 | `Address already in use` / port 8080 busy | Something else is on 8080. Start with another port: `PORT=3000 ./run.sh`, then use `http://localhost:3000`. On Windows find it with `netstat -ano | findstr :8080`. |
 | Page loads but the layout looks broken | Hard refresh (`Ctrl + Shift + R`) — the CSS/JS are cached aggressively by the browser. |
 | Login says the credentials are wrong | The email must be exact: `student@placeiq.dev` (not `.com`). Or reset everything with `./run.sh --reseed`. |
+| "Too many failed attempts" | The brute-force lock is doing its job. Wait 15 minutes, clear it as admin (**Sign-in security → Unlock**), or run `sqlite3 placeiq.db "DELETE FROM login_attempts;"`. |
 | Charts or data look stale after editing `data/*.json` | Content is seeded into SQLite on first run, so re-seed to pick up edits: `./run.sh --reseed`. |
 | `No suitable driver found` | The `lib/` jars are missing from the working directory — run the launcher from the project root. |
 | Terminal closed, site gone | The server only lives while that command runs. Start it again with `./run.sh`. |
@@ -129,7 +149,7 @@ npm i jsdom && node tools/ui-smoke.js
 
 ---
 
-## 8. Where things live
+## 9. Where things live
 
 ```
 placeiq/
@@ -137,7 +157,8 @@ placeiq/
 ├── test.sh / test.bat      run the 84-assertion backend suite
 ├── static/                 the web app (HTML + CSS + vanilla JS)
 ├── backend/src/placeiq/    the Java API
-├── data/                   all content and tunables (JSON)
+├── data/                   all content and tunables (JSON) - edit courses.json / resources.json
+│                           and the change is picked up on the next start
 ├── lib/                    SQLite + Gson jars (so you need no Maven)
 ├── placeiq.db              created on first run (safe to delete)
 └── DESIGN.md               design, motion and sound spec

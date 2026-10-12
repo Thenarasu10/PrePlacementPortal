@@ -57,6 +57,11 @@ public final class Json {
     catch (Exception e) { return fallback; }
   }
 
+  public static boolean bool(JsonObject o, String key, boolean fallback) {
+    try { return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsBoolean() : fallback; }
+    catch (Exception e) { return fallback; }
+  }
+
   public static boolean bool(JsonObject o, String key) {
     if (o == null || !o.has(key) || o.get(key).isJsonNull()) return false;
     try { return o.get(key).getAsBoolean(); } catch (Exception e) { return false; }

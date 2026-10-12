@@ -94,6 +94,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   check('demo login buttons from API', window.document.querySelectorAll('#demoLogins .demo-btn').length === 3,
     'found ' + window.document.querySelectorAll('#demoLogins .demo-btn').length);
   check('domain options populated from config', window.document.querySelectorAll('#registerForm select[name=domain] option').length >= 4);
+  check('login offers a role picker (student / mentor / admin)', window.document.querySelectorAll('[data-role-pick]').length === 3);
+  window.document.querySelector('[data-role-pick=mentor]').click();
+  check('picking a role prefills that demo account',
+    $('#loginForm').querySelector('[name=email]').value === 'mentor@placeiq.dev',
+    $('#loginForm').querySelector('[name=email]').value);
+  check('picking a role explains what that role gets', ($('#roleNote').textContent || '').length > 40);
+  window.document.querySelector('[data-role-pick=student]').click();
+  check('switching back prefills the student account',
+    $('#loginForm').querySelector('[name=email]').value === 'student@placeiq.dev');
 
   /* ---------- student flow ---------- */
   async function login(email, password) {
@@ -179,6 +188,38 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     check('interview: overall score rendered', text().includes('XP earned'), text().slice(0, 80));
   } else check('interview question rendered', false);
 
+  /* learn screen: catalogue + free external resources */
+  [...window.document.querySelectorAll('#nav .nav-item')].find(b => b.dataset.go === 'learn').click();
+  await waitFor(() => view() && view().querySelectorAll('.learn-card').length > 0);
+  const learnCards = view().querySelectorAll('.learn-card');
+  check('learn: course catalogue renders', learnCards.length >= 11, 'cards ' + learnCards.length);
+  const links = [...view().querySelectorAll('a[href^="https://"]')];
+  check('learn: external learning links rendered', links.length >= 25, 'links ' + links.length);
+  check('learn: every external link opens safely in a new tab',
+    links.every(a => a.target === '_blank' && (a.rel || '').includes('noopener')), links.length + ' links checked');
+  check('learn: no placeholder example.com links remain',
+    !view().innerHTML.includes('example.com'));
+  check('learn: free resource library grouped by section', (view().textContent.match(/Free learning library/) || []).length === 1);
+  check('learn: weakest section called out as "start here"',
+    view().textContent.includes('Start here') && view().querySelectorAll('.chip.warn').length > 0);
+  check('learn: recommended courses flagged', view().textContent.includes('matches your gaps'));
+  const openLinks = [...view().querySelectorAll('a[href^="https://"]')].map(a => a.href);
+  check('learn: links point at real learning sites (indiaBix / GFG / NPTEL / freeCodeCamp / Khan / NeetCode)',
+    openLinks.some(h => h.includes('indiabix')) && openLinks.some(h => h.includes('geeksforgeeks')) &&
+    openLinks.some(h => h.includes('nptel')) && openLinks.some(h => h.includes('neetcode')));
+  const learnStart = view().querySelector('[data-course]');
+  if (learnStart) {
+    learnStart.click();
+    await sleep(1500);
+    check('learn: starting a course records progress', view().textContent.includes('In progress'), '');
+  }
+  /* profile: sign-in security */
+  [...window.document.querySelectorAll('#nav .nav-item')].find(b => b.dataset.go === 'profile').click();
+  await waitFor(() => !!window.document.getElementById('signOutAll'));
+  check('profile: security section with session controls', !!$('#signOutAll') && !!$('#pwChange') && !!$('#pwOld'));
+  await waitFor(() => ($('#secSessions').textContent || '').match(/[0-9]/));
+  check('profile: active session count loaded from the API', /[0-9]/.test($('#secSessions').textContent), $('#secSessions').textContent);
+
   /* company detail + fit ring */
   [...window.document.querySelectorAll('#nav .nav-item')].find(b => b.dataset.go === 'companies').click();
   await sleep(900);
@@ -237,6 +278,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     /^[0-9]+$/.test($('#kAdm1').textContent.trim()) && Number($('#kAdm1').textContent) > 0
       && !$('#kAdm2').textContent.includes('-'), 'size=' + $('#kAdm1').textContent + ' prs=' + $('#kAdm2').textContent);
   check('admin: section chart', !!$('#adminSec'));
+  await waitFor(() => $('#secPanel') && !$('#secPanel').textContent.includes('Loading'));
+  check('admin: sign-in security panel renders', !!$('#secPanel') && $('#secPanel').textContent.includes('Locked accounts'),
+    $('#secPanel') ? $('#secPanel').textContent.slice(0, 60) : 'panel missing');
+  check('admin: audit trail of sign-in activity shown', !!$('#secPanel') && $('#secPanel').textContent.includes('Recent sign-in activity'));
+  check('admin: security policy surfaced to the operator', !!$('#secPanel') && $('#secPanel').textContent.includes('PBKDF2'));
   [...window.document.querySelectorAll('#nav .nav-item')].find(b => b.dataset.go === 'questions').click();
   await sleep(900);
   check('admin: question bank table', view().querySelectorAll('table tbody tr').length > 50,
