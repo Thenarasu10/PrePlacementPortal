@@ -4,5 +4,5 @@ set -e
 cd "$(dirname "$0")"
 echo "Compiling Java backend..."
 javac -cp "lib/*" -d bin $(find backend/src -name '*.java')
-echo "Starting PlaceIQ on http://localhost:8080"
+echo "Starting PlaceIQ on http://localhost:${PORT:-8080}"
 exec java -cp "bin:lib/*" placeiq.Main "$@"
