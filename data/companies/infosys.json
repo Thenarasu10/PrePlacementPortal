@@ -1,0 +1,29 @@
+{
+  "id": "infosys", "name": "Infosys", "fullName": "Infosys Limited",
+  "difficulty": "Moderate", "hiringSeason": "Sep - Dec",
+  "roles": ["Systems Engineer (3.6 LPA)", "Power Programmer (9 LPA)", "Specialist Programmer (6.5 LPA)"],
+  "eligibility": { "cgpa": "6.5+ / 7.0+ for SP", "backlogs": "No active backlog", "branches": "BE/BTech/ME/MTech/MCA", "gap": "Max 2 years" },
+  "rounds": [
+    { "name": "Online Test (InfyTQ / Online Assessment)", "mode": "Online, 150 min", "detail": "Quantitative, verbal, logical + 3 coding questions of increasing difficulty.", "cutoff": "Sectional, ~65% aggregate" },
+    { "name": "Technical Interview", "mode": "45 min", "detail": "Java/Python, OOP, DBMS queries, DSA basics, project deep-dive." },
+    { "name": "HR Interview", "mode": "20 min", "detail": "Culture fit, willingness to learn any technology, relocation." }
+  ],
+  "skills": { "aptitude": 0.20, "logical": 0.20, "coding": 0.35, "communication": 0.10, "domain": 0.15 },
+  "aptitudePatterns": [
+    { "topic": "Data Interpretation", "frequency": "High", "sample": "A pie chart of 5 expense heads - find by what percent the largest exceeds the smallest." },
+    { "topic": "Ratios & Mixtures", "frequency": "High", "sample": "Two vessels have milk:water 3:1 and 5:3. In what ratio must they be mixed to get 2:1?" },
+    { "topic": "Cryptarithmetic / Puzzles", "frequency": "Medium", "sample": "SEND + MORE = MONEY style logic puzzles in the InfyTQ pattern." }
+  ],
+  "codingPatterns": [
+    { "topic": "Number theory", "sample": "Count the number of primes in a range using a sieve, with time-limit awareness." },
+    { "topic": "Strings", "sample": "Check whether two strings are anagrams, ignoring case and spaces." },
+    { "topic": "Matrices", "sample": "Rotate an N x N matrix by 90 degrees in place." }
+  ],
+  "hrQuestions": [
+    "You may be posted on any technology - how will you handle that?",
+    "Where do you see yourself in three years at Infosys?",
+    "Tell us about a time a team member did not deliver. What did you do?"
+  ],
+  "tips": ["Power Programmer needs strong DSA - DP and graphs are asked.", "InfyTQ certification carries real weight in the shortlisting.", "Practise 90-second story answers for HR."],
+  "links": { "practiceSet": "coding+aptitude+domain", "recommendedCourses": ["C06", "C07", "C10", "C05"] }
+}

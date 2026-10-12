@@ -1,0 +1,24 @@
+{
+  "_note": "Keyword sets used by the resume analyzer for role matching. Add roles or keywords freely - the analyzer reads this file.",
+  "roles": {
+    "Software Engineer": ["java", "python", "data structures", "algorithms", "sql", "git", "rest api", "spring", "react", "unit test", "oop", "debugging", "agile"],
+    "Data Analyst": ["sql", "excel", "python", "pandas", "power bi", "tableau", "dashboard", "statistics", "a/b test", "etl", "data cleaning"],
+    "VLSI Engineer": ["verilog", "vhdl", "cmos", "spice", "synthesis", "timing analysis", "fpga", "digital design", "cadence", "rtl"],
+    "Design Engineer": ["solidworks", "catia", "autocad", "gd&t", "fea", "ansys", "manufacturing", "tolerance", "3d modelling", "sheet metal"],
+    "Business Analyst": ["requirement", "stakeholder", "brd", "sql", "process mapping", "agile", "jira", "kpi", "gap analysis", "uml"]
+  },
+  "actionVerbs": ["built", "developed", "designed", "implemented", "automated", "reduced", "improved", "led", "created", "optimised", "optimized", "analysed", "analyzed", "deployed", "migrated", "launched", "trained", "mentored"],
+  "expectedSections": ["Education", "Skills", "Projects", "Experience", "Certifications", "Achievements"],
+  "checklist": [
+    { "key": "linkedin", "label": "LinkedIn profile updated with headline and about" },
+    { "key": "github", "label": "GitHub with at least 3 polished repositories" },
+    { "key": "resume_pdf", "label": "One-page resume exported as PDF with a clean layout" },
+    { "key": "projects", "label": "Two projects with measurable outcomes described" },
+    { "key": "certification", "label": "One role-relevant certification or course completed" },
+    { "key": "mock_interview", "label": "At least one mock interview attempted" },
+    { "key": "dsa_count", "label": "150+ coding problems solved on any platform" },
+    { "key": "aptitude_set", "label": "Aptitude mocks attempted with 70%+ accuracy" },
+    { "key": "id_docs", "label": "Marksheets, ID proof and passport photos scanned and ready" },
+    { "key": "referral", "label": "Two seniors or alumni asked for referral guidance" }
+  ]
+}

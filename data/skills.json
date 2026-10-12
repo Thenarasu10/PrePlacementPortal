@@ -1,0 +1,42 @@
+{
+  "_note": "Skill graph. 'prereq' lists skill ids that should be reasonably strong before this one. 'impact' is the weight used when ranking gaps (weight x deficit).",
+  "skills": [
+    { "id": "quant.percentages",   "name": "Percentages",              "section": "aptitude",      "impact": 1.0, "prereq": [] },
+    { "id": "quant.ratio",         "name": "Ratio & Proportion",       "section": "aptitude",      "impact": 0.9, "prereq": ["quant.percentages"] },
+    { "id": "quant.averages",      "name": "Averages & Mixtures",      "section": "aptitude",      "impact": 0.8, "prereq": ["quant.ratio"] },
+    { "id": "quant.timework",      "name": "Time, Speed & Work",       "section": "aptitude",      "impact": 1.0, "prereq": ["quant.ratio"] },
+    { "id": "quant.profitloss",    "name": "Profit, Loss & Interest",  "section": "aptitude",      "impact": 0.8, "prereq": ["quant.percentages"] },
+    { "id": "quant.permcomb",      "name": "Permutation & Probability","section": "aptitude",      "impact": 0.9, "prereq": ["quant.percentages"] },
+    { "id": "quant.numbers",       "name": "Number System",            "section": "aptitude",      "impact": 0.7, "prereq": [] },
+
+    { "id": "logic.series",        "name": "Number & Letter Series",   "section": "logical",       "impact": 0.8, "prereq": [] },
+    { "id": "logic.bloodrel",      "name": "Blood Relations",          "section": "logical",       "impact": 0.7, "prereq": [] },
+    { "id": "logic.direction",     "name": "Direction Sense",          "section": "logical",       "impact": 0.6, "prereq": [] },
+    { "id": "logic.puzzles",       "name": "Seating & Puzzles",        "section": "logical",       "impact": 1.0, "prereq": ["logic.direction"] },
+    { "id": "logic.syllogism",     "name": "Syllogism & Deduction",    "section": "logical",       "impact": 0.9, "prereq": [] },
+    { "id": "logic.datainterp",    "name": "Data Interpretation",      "section": "logical",       "impact": 1.0, "prereq": ["quant.percentages"] },
+
+    { "id": "code.arrays",         "name": "Arrays & Strings",         "section": "coding",        "impact": 1.0, "prereq": [] },
+    { "id": "code.hashing",        "name": "Hashing",                  "section": "coding",        "impact": 0.9, "prereq": ["code.arrays"] },
+    { "id": "code.sorting",        "name": "Sorting & Searching",      "section": "coding",        "impact": 0.9, "prereq": ["code.arrays"] },
+    { "id": "code.recursion",      "name": "Recursion",                "section": "coding",        "impact": 0.9, "prereq": [] },
+    { "id": "code.dp",             "name": "Dynamic Programming",      "section": "coding",        "impact": 1.0, "prereq": ["code.recursion"] },
+    { "id": "code.linkedlist",     "name": "Linked Lists & Stacks",    "section": "coding",        "impact": 0.8, "prereq": [] },
+    { "id": "code.complexity",     "name": "Time/Space Complexity",    "section": "coding",        "impact": 0.8, "prereq": [] },
+
+    { "id": "comm.grammar",        "name": "Grammar & Sentence Usage", "section": "communication", "impact": 0.8, "prereq": [] },
+    { "id": "comm.reading",        "name": "Reading Comprehension",    "section": "communication", "impact": 0.8, "prereq": [] },
+    { "id": "comm.structuring",    "name": "Answer Structuring",       "section": "communication", "impact": 1.0, "prereq": [] },
+    { "id": "comm.email",          "name": "Professional Writing",     "section": "communication", "impact": 0.7, "prereq": ["comm.grammar"] },
+    { "id": "comm.gd",             "name": "Group Discussion",         "section": "communication", "impact": 0.9, "prereq": ["comm.structuring"] },
+
+    { "id": "dom.dsa-core",        "name": "Core CS: DSA Basics",      "section": "domain",        "impact": 0.9, "prereq": [] },
+    { "id": "dom.dbms",            "name": "DBMS & SQL",               "section": "domain",        "impact": 1.0, "prereq": [] },
+    { "id": "dom.os",              "name": "Operating Systems",        "section": "domain",        "impact": 0.9, "prereq": [] },
+    { "id": "dom.networks",        "name": "Computer Networks",        "section": "domain",        "impact": 0.8, "prereq": [] },
+    { "id": "dom.oops",            "name": "OOP & Java Fundamentals",  "section": "domain",        "impact": 1.0, "prereq": [] },
+    { "id": "dom.ece",             "name": "Electronics Fundamentals", "section": "domain",        "impact": 0.9, "prereq": [] },
+    { "id": "dom.mech",            "name": "Mechanical Fundamentals",  "section": "domain",        "impact": 0.9, "prereq": [] },
+    { "id": "dom.commerce",        "name": "Commerce & Accounting",    "section": "domain",        "impact": 0.9, "prereq": [] }
+  ]
+}

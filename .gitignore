@@ -1,0 +1,21 @@
+# build output - run.sh / test.sh compile into bin/
+bin/
+*.class
+
+# runtime database (seeded on first run from data/*.json)
+placeiq.db
+placeiq.db-wal
+placeiq.db-shm
+*.sqlite
+*.sqlite3
+
+# node tooling for the optional UI smoke test
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# editors / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp

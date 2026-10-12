@@ -1,0 +1,30 @@
+{
+  "id": "amazon", "name": "Amazon", "fullName": "Amazon Development Centre India",
+  "difficulty": "Very Hard", "hiringSeason": "Jun - Aug (SDE) & Jan (SDE Intern)",
+  "roles": ["SDE-1", "SDE Intern", "Support Engineer"],
+  "eligibility": { "cgpa": "7.0+ typical", "backlogs": "None", "branches": "CS/IT/ECE + related", "gap": "Case by case" },
+  "rounds": [
+    { "name": "Online Assessment 1", "mode": "Online, 90 min", "detail": "2 coding problems (medium/hard) + debugging section + workstyle survey.", "cutoff": "Highest-scoring shortlist, ~20-40%" },
+    { "name": "Online Assessment 2", "mode": "Online, 60 min", "detail": "Work simulation + logic reasoning, aligned to leadership principles." },
+    { "name": "Technical Round 1", "mode": "60 min", "detail": "DSA (arrays, strings, graphs, DP) with complexity analysis; no IDE, shared doc." },
+    { "name": "Technical Round 2 + Bar Raiser", "mode": "60 min each", "detail": "Advanced DSA, low-level design and Leadership-Principle behavioural questions." }
+  ],
+  "skills": { "aptitude": 0.05, "logical": 0.15, "coding": 0.55, "communication": 0.15, "domain": 0.10 },
+  "aptitudePatterns": [
+    { "topic": "Logic / Work Simulation", "frequency": "Medium", "sample": "Given a log of failed orders, what sequence of actions best follows the customer-obsession principle?" },
+    { "topic": "Complexity analysis", "frequency": "Very High", "sample": "State the time and space complexity of your solution and prove why it cannot be improved." }
+  ],
+  "codingPatterns": [
+    { "topic": "Arrays / Two pointers", "sample": "Container with most water - return the maximum area." },
+    { "topic": "Graphs / BFS-DFS", "sample": "Minimum number of steps to transform one word into another (word ladder)." },
+    { "topic": "Dynamic Programming", "sample": "Longest palindromic substring / maximum sum subarray variants." },
+    { "topic": "Heaps", "sample": "Merge k sorted lists and k most frequent elements." }
+  ],
+  "hrQuestions": [
+    "Tell me about a time you took ownership of a failure. (Ownership)",
+    "Describe a situation where you disagreed with a mentor and how you handled it. (Have Backbone)",
+    "Give an example of delivering results under a hard deadline. (Deliver Results)"
+  ],
+  "tips": ["Every behavioural answer must be a STAR story - prepare 8 stories covering the leadership principles.", "Talk through your approach before coding; interviewers score communication.", "Practise on a plain text editor, not an IDE with autocomplete."],
+  "links": { "practiceSet": "coding", "recommendedCourses": ["C06", "C07", "C09"] }
+}

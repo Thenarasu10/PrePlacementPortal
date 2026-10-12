@@ -1,0 +1,29 @@
+{
+  "id": "tcs", "name": "TCS", "fullName": "Tata Consultancy Services",
+  "difficulty": "Moderate", "hiringSeason": "Aug - Nov & Jan - Mar",
+  "roles": ["Ninja (3.6 LPA)", "Digital (7 LPA)", "Prime (9-11 LPA)"],
+  "eligibility": { "cgpa": "6.0+ (Ninja) / 7.0+ (Digital)", "backlogs": "No active backlog", "branches": "All engineering + MCA/MSc", "gap": "Max 2 years" },
+  "rounds": [
+    { "name": "TCS NQT - Foundation + Advanced", "mode": "Online, 180 min", "detail": "Numerical ability, verbal, reasoning, programming logic + 2 hands-on coding questions.", "cutoff": "Sectional cut-offs apply" },
+    { "name": "Technical Interview", "mode": "30-40 min", "detail": "Final-year project, Java/C fundamentals, DBMS basics, one coding question on paper." },
+    { "name": "Managerial + HR Round", "mode": "20-30 min", "detail": "Relocation flexibility, shift readiness, service agreement, communication." }
+  ],
+  "skills": { "aptitude": 0.30, "logical": 0.25, "coding": 0.25, "communication": 0.10, "domain": 0.10 },
+  "aptitudePatterns": [
+    { "topic": "Percentages & Profit-Loss", "frequency": "High", "sample": "A shirt marked at Rs. 1200 is sold after two successive discounts of 10% and 5%. Find the selling price." },
+    { "topic": "Time & Work", "frequency": "High", "sample": "A does a job in 12 days, B in 18 days. Working together, how many days for 3 such jobs?" },
+    { "topic": "Number Series", "frequency": "Medium", "sample": "4, 9, 19, 39, ? - find the next term and the rule." }
+  ],
+  "codingPatterns": [
+    { "topic": "String manipulation", "sample": "Reverse words in a sentence without reversing characters inside a word." },
+    { "topic": "Arrays", "sample": "Find the second largest element in an array in a single pass." },
+    { "topic": "Basic recursion", "sample": "Print the Fibonacci series up to N terms using recursion." }
+  ],
+  "hrQuestions": [
+    "Why TCS when you also cleared other companies?",
+    "Are you willing to relocate to any TCS location and work in any shift?",
+    "Explain your final year project to a non-technical person."
+  ],
+  "tips": ["NQT sectional cut-offs matter - never leave a section blank-heavy.", "Service agreement (bond) details are asked in HR - read them before the interview.", "Digital/Prime coding is a function-completion format; practise exact I/O."],
+  "links": { "practiceSet": "aptitude+logical+verbal", "recommendedCourses": ["C01", "C02", "C04", "C08"] }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "zoho", "name": "Zoho", "fullName": "Zoho Corporation",
+  "difficulty": "Hard", "hiringSeason": "Year-round (off-campus drives)",
+  "roles": ["Member Technical Staff (MTS)", "Software Developer", "QA Engineer"],
+  "eligibility": { "cgpa": "No hard cut-off", "backlogs": "Arrears cleared", "branches": "Any engineering / MCA", "gap": "Not strict" },
+  "rounds": [
+    { "name": "Written Round (C / Aptitude)", "mode": "Paper or online, 60-90 min", "detail": "C output-predict questions, pointers, arrays and a few logical puzzles.", "cutoff": "Heavy elimination round" },
+    { "name": "Advanced Programming Round", "mode": "5-6 hours, on-site", "detail": "Build a mini application (console or UI) - design, code and demo your own solution." },
+    { "name": "Technical + HR Discussion", "mode": "60 min", "detail": "Own project code walked line by line; favourite subject deep-dived." }
+  ],
+  "skills": { "aptitude": 0.15, "logical": 0.15, "coding": 0.45, "communication": 0.10, "domain": 0.15 },
+  "aptitudePatterns": [
+    { "topic": "C Output Prediction", "frequency": "Very High", "sample": "printf(\"%d\", sizeof(++i) + sizeof(i++)); - what prints and why?" },
+    { "topic": "Pointers & Memory", "frequency": "Very High", "sample": "Given char *s = \"hello\"; and char a[] = \"hello\"; explain the difference in mutability." },
+    { "topic": "Basic Puzzles", "frequency": "Medium", "sample": "8 balls, one heavier, a balance scale - minimum weighings?" }
+  ],
+  "codingPatterns": [
+    { "topic": "Application building", "sample": "In 5 hours, build a bus reservation system with add/cancel/print-PNR features." },
+    { "topic": "Recursion & backtracking", "sample": "Generate all permutations of a string, avoiding duplicates." },
+    { "topic": "Matrix/string formatting", "sample": "Print a spiral matrix and a character-frequency histogram." }
+  ],
+  "hrQuestions": [
+    "Show and explain a piece of code you are genuinely proud of.",
+    "Would you prefer product support, development or QA - and why?",
+    "How do you debug code you wrote a year ago?"
+  ],
+  "tips": ["Revise C pointers, storage classes and output-prediction questions.", "The programming round rewards a finishable, working app over clever unfinished design.", "Be ready to modify your own project live if asked."],
+  "links": { "practiceSet": "coding+domain", "recommendedCourses": ["C06", "C07", "C10"] }
+}

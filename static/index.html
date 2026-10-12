@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PlaceIQ · placement preparation platform</title>
+<link rel="stylesheet" href="/css/app.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%234F46E5'/><path d='M9 21l4-10 3 6 2-3 5 7z' fill='white'/></svg>" />
+</head>
+<body>
+<div id="srLive" class="sr" aria-live="polite" role="status"></div>
+
+<!-- ================= auth ================= -->
+<section id="auth" class="auth-wrap">
+  <div class="auth-card card" style="max-width:560px">
+    <div class="brand big"><span class="logo">PQ</span><span>PlaceIQ</span></div>
+    <p class="muted">Assess, find your gaps, close them, and watch your readiness score climb.</p>
+    <div class="tabs mb">
+      <button class="tab active" data-auth="login" type="button">Sign in</button>
+      <button class="tab" data-auth="register" type="button">Create account</button>
+    </div>
+    <form id="loginForm" class="stack">
+      <label>Email<input name="email" type="email" value="student@placeiq.dev" required /></label>
+      <label>Password<input name="password" type="password" value="student123" required /></label>
+      <button class="btn primary" type="submit">Sign in</button>
+      <p class="field-error" id="loginError" role="alert"></p>
+    </form>
+    <form id="registerForm" class="stack hide">
+      <label>Full name<input name="name" placeholder="Your name" required /></label>
+      <label>Email<input name="email" type="email" placeholder="you@college.edu" required /></label>
+      <label>Password<input name="password" type="password" minlength="6" placeholder="At least 6 characters" required /></label>
+      <div class="row"><label>College<input name="college" placeholder="College name" /></label>
+        <label>Branch<input name="branch" placeholder="CSE / ECE / MECH" /></label></div>
+      <div class="row"><label>Domain<select name="domain"></select></label>
+        <label>Target role<input name="targetRole" value="Software Engineer" /></label></div>
+      <button class="btn primary" type="submit">Create account</button>
+      <p class="field-error" id="registerError" role="alert"></p>
+    </form>
+    <div class="card tight mt" style="background:var(--surface-2)">
+      <strong class="small">Demo logins</strong>
+      <div class="grid g3 mt" id="demoLogins"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= onboarding overlay (3 steps) ================= -->
+<section id="onboarding" class="hide" style="min-height:100vh;display:grid;place-items:center;padding:var(--s3)">
+  <div class="card" style="width:min(720px,100%)">
+    <div class="between mb">
+      <div class="brand"><span class="logo">PQ</span><span>PlaceIQ setup</span></div>
+      <div class="stepper" id="stepper">
+        <div class="dot current" data-step="1">1</div><div class="line"><i></i></div>
+        <div class="dot" data-step="2">2</div><div class="line"><i></i></div>
+        <div class="dot" data-step="3">3</div>
+      </div>
+    </div>
+    <div id="obStep"></div>
+  </div>
+</section>
+
+<!-- ================= app shell ================= -->
+<section id="app" class="hide">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <button class="icon-btn collapse-btn" id="collapseBtn" title="Collapse sidebar" aria-label="Collapse sidebar">☰</button>
+      <span>PlaceIQ</span>
+    </div>
+    <nav id="nav" aria-label="Main"></nav>
+    <div class="sidebar-foot">
+      <div class="whoami" id="whoami"></div>
+      <button class="btn ghost small" id="themeBtn" type="button">Dark theme</button>
+      <button class="btn ghost small" id="soundQuick" type="button">Sound: off</button>
+      <button class="btn ghost small" id="logoutBtn" type="button">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn only-mobile" id="menuBtn" aria-label="Open menu">☰</button>
+      <h1 id="viewTitle">Dashboard</h1>
+      <div class="search" role="search">
+        <span aria-hidden="true">🔍</span>
+        <input id="globalSearch" placeholder="Search companies, courses, tasks" aria-label="Search" />
+      </div>
+      <div class="topbar-right">
+        <span class="chip hide" id="targetChip"></span>
+        <button class="icon-btn" id="bellBtn" aria-label="Notifications" title="Notifications">🔔<span id="bellCount" class="pill hide">0</span></button>
+        <button class="icon-btn" id="profileBtn" aria-label="Profile" title="Profile and settings">👤</button>
+      </div>
+    </header>
+    <div id="notifPanel" class="notif-panel hide" role="region" aria-label="Notifications"></div>
+    <div id="view" class="view"></div>
+  </div>
+
+  <nav class="bottom-nav" id="bottomNav" aria-label="Primary"></nav>
+</section>
+
+<div id="toast" class="toast hide" role="status"></div>
+<div id="modalHost"></div>
+
+<script src="/js/sound.js"></script>
+<script src="/js/motion.js"></script>
+<script src="/js/charts.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

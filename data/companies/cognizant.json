@@ -1,0 +1,29 @@
+{
+  "id": "cognizant", "name": "Cognizant", "fullName": "Cognizant Technology Solutions",
+  "difficulty": "Easy", "hiringSeason": "Aug - Jan",
+  "roles": ["GenC (4 LPA)", "GenC Next (6.5 LPA)", "GenC Elevate (5.5 LPA)"],
+  "eligibility": { "cgpa": "6.0+ (GenC) / 7.0+ (Next)", "backlogs": "0 active", "branches": "All engineering + MCA", "gap": "Max 2 years" },
+  "rounds": [
+    { "name": "GenC / GenC Next Online Test", "mode": "Online, 120 min", "detail": "Aptitude (quant, logical, verbal) + coding for Next/Elevate tracks.", "cutoff": "Track-wise cut-offs" },
+    { "name": "Technical Interview", "mode": "30 min", "detail": "Programming basics, SQL queries, one project question, OOP concepts." },
+    { "name": "HR Round", "mode": "20 min", "detail": "Flexibility, documentation, communication, willingness to learn." }
+  ],
+  "skills": { "aptitude": 0.30, "logical": 0.25, "coding": 0.20, "communication": 0.15, "domain": 0.10 },
+  "aptitudePatterns": [
+    { "topic": "Averages & Ages", "frequency": "High", "sample": "The average age of a class of 30 is 15. A student aged 20 leaves. What is the new average?" },
+    { "topic": "Blood Relations", "frequency": "High", "sample": "Pointing to a photo, Ravi says 'her mother is my mother's only daughter'. Who is she to Ravi?" },
+    { "topic": "Coding-Decoding", "frequency": "Medium", "sample": "If ROSE is written as 6821, how is CHAIR written in the same code?" }
+  ],
+  "codingPatterns": [
+    { "topic": "Pattern printing", "sample": "Print a pyramid of stars for n rows." },
+    { "topic": "Simple logic", "sample": "Find whether a number is an Armstrong number." },
+    { "topic": "SQL basics", "sample": "Write a query to fetch the second-highest salary from an Employee table." }
+  ],
+  "hrQuestions": [
+    "Why should we hire you over a candidate with better marks?",
+    "Are you comfortable with the GenC service agreement?",
+    "Which is your strongest subject and can you teach it to us in 2 minutes?"
+  ],
+  "tips": ["GenC Next coding is 2 medium problems - clear patterns get you the higher package.", "SQL joins and GROUP BY come up in almost every technical round.", "Keep marksheets, ID proof and resume copies ready - the process is same-day."],
+  "links": { "practiceSet": "aptitude+logical+communication", "recommendedCourses": ["C01", "C04", "C08", "C10"] }
+}
