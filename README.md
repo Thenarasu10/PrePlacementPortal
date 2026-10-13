@@ -74,6 +74,22 @@ With no key the app is 100% offline and uses the deterministic rubric provider.
 10. **Sign-in security** - password policy (length, character mix, common-password and email-reuse rejection), salted PBKDF2 with a unique salt per hash, 256-bit session tokens, expiry and revocation on lookup, lockout after repeated failures (429 + Retry-After), identical responses for unknown email vs wrong password, and security response headers.
 11. **Learning library** - every catalogue course points at a real (non-placeholder) external resource, each section has free resources, links are https, and course progress flows through to the catalogue payload.
 
+### UI layout check (optional, needs Node)
+
+The smoke test runs in jsdom, which has no layout engine, so it cannot catch a chart forcing a grid
+track wider than the phone screen. This one drives real headless Chrome at four widths:
+
+```bash
+./run.sh &                    # server on http://localhost:8080
+npm i puppeteer
+node tools/ui-layout-check.js
+```
+
+24 checks - nothing wider than the viewport at 1440/1280/1024/390, the sidebar lays out as designed
+(240px → 76px rail → hidden), the sidebar never overlaps the content column, nav labels appear and
+collapse correctly, mobile shows the bottom tab bar, and every chart stays inside its card. Exits
+non-zero on failure, so it can run in CI.
+
 ### UI smoke test (optional, needs Node)
 
 The Java suite covers logic and the API. To prove the single-page app itself runs, this walks the
@@ -205,6 +221,18 @@ placeiq/
         js/motion.js              motion helpers: durations, stagger, count-ups, rings, milestones
         js/sound.js               opt-in synthesised sound manager (no audio files, off by default)
 ```
+
+### Layout rules that are easy to get wrong
+
+Three rules keep the responsive shell from breaking, and they are enforced by `tools/ui-layout-check.js`:
+
+1. **The shell grid lives on `#app` as `class="app"`** - `<section id="app" class="app hide">`. Without
+   the class the sidebar and content stack instead of sitting side by side.
+2. **Replaced elements set `min-width:0`** - a `<canvas>` reports its intrinsic pixel width to the
+   layout engine, so on a 390px screen it would stretch its grid track to ~650px. `canvas{max-width:100%;min-width:0}`
+   plus `.grid > *, .split > *, .row > *{min-width:0}` keeps every card inside the viewport.
+3. **The top bar drops secondary chips on small screens** - the target chip hides under 820px and the
+   role chip becomes icon-only under 640px, so the page never scrolls sideways.
 
 ### UI layer in one paragraph
 

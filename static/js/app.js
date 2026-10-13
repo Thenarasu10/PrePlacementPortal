@@ -359,7 +359,7 @@ const TITLES = { dashboard: 'Dashboard', assessment: 'Assessment', results: 'Pro
   planner: 'Preparation planner', mock: 'Timed mock tests', interview: 'Mock interview', resume: 'Resume analyzer',
   companies: 'Company explorer', mentor: 'Student monitor', admin: 'Cohort analytics', questions: 'Question bank',
   import: 'Data import', profile: 'Profile & settings' };
-const ROLE_BADGE = { student: '🎓 Student', mentor: '🧑‍🏫 Mentor', admin: '🛡️ Admin' };
+const ROLE_BADGE = { student: ['🎓', 'Student'], mentor: ['🧑‍🏫', 'Mentor'], admin: ['🛡️', 'Admin'] };
 
 function startApp() {
   el('auth').classList.add('hide');
@@ -375,7 +375,12 @@ function startApp() {
   el('bottomNav').querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
   el('whoami').innerHTML = `<b>${esc(state.user.name)}</b>${esc(state.user.role)} · ${esc(state.user.college || 'no college set')}`;
   const chip = el('roleChip');
-  if (chip) { chip.textContent = ROLE_BADGE[role] || role; chip.className = 'role-chip ' + role; }
+  if (chip) {
+    const [ico, label] = ROLE_BADGE[role] || ['👤', role];
+    chip.innerHTML = `<span aria-hidden="true">${ico}</span><span class="role-label">${esc(label)}</span>`;
+    chip.className = 'role-chip ' + role;
+    chip.setAttribute('aria-label', 'Signed in as ' + label);
+  }
   el('targetChip').classList.remove('hide');
   el('targetChip').textContent = state.user.targetCompany ? 'Target: ' + state.user.targetCompany : 'No target company yet';
   syncSoundUi();

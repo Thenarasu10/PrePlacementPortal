@@ -97,6 +97,8 @@ code{background:var(--surface-2);padding:2px 6px;border-radius:6px;font-size:var
 .nav-item.active{background:var(--indigo-50);color:var(--indigo);font-weight:600}
 .nav-ico{width:18px;text-align:center;flex:0 0 auto}
 .sidebar-foot{margin-top:auto;display:grid;gap:var(--s1)}
+.whoami{font-size:var(--t12);line-height:1.5}
+.whoami b{display:block;font-size:var(--t14)}
 .sidebar.collapsed{width:76px}
 .sidebar.collapsed .nav-label,.sidebar.collapsed .whoami,.sidebar.collapsed .brand span{display:none}
 .sidebar.collapsed .nav-item{justify-content:center}
@@ -278,7 +280,7 @@ ul.clean{list-style:none;padding:0;margin:0;display:grid;gap:var(--s1)}
 .feedback.bad{border-color:var(--warning)}
 
 /* charts */
-canvas{width:100%;display:block}
+canvas{width:100%;max-width:100%;min-width:0;display:block}
 .chart-wrap{position:relative}
 .chart-tip{
   position:absolute;pointer-events:none;background:var(--g900);color:#fff;padding:6px 10px;border-radius:var(--r-sm);
@@ -443,7 +445,8 @@ h4.mt{margin-top:18px}
 
 /* ---- role chip in the top bar ---- */
 .role-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:var(--r-full);
-  border:1px solid var(--line);background:var(--surface-2);font-size:var(--t12);font-weight:600}
+  border:1px solid var(--line);background:var(--surface-2);font-size:var(--t12);font-weight:600;white-space:nowrap}
+.role-label{display:inline}
 .role-chip.student{border-color:var(--indigo);color:var(--indigo)}
 .role-chip.mentor{border-color:var(--success);color:var(--success)}
 .role-chip.admin{border-color:var(--warning);color:var(--warning)}
@@ -454,3 +457,36 @@ h4.mt{margin-top:18px}
 @keyframes shake-once{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .shake-once{animation:shake-once var(--dur-comp) var(--ease-out)}
 @media (prefers-reduced-motion:reduce){.shake-once{animation:none}}
+
+/* ---------------- auth screen (login / register) ---------------- */
+.auth-wrap{min-height:100vh;display:grid;place-items:center;padding:var(--s3) var(--s2);
+  background:linear-gradient(180deg,var(--surface-2) 0%,var(--bg) 55%)}
+.auth-card{width:100%;padding:var(--s3);box-shadow:var(--shadow-lg,0 18px 50px rgba(15,23,42,.10))}
+.auth-card .tabs{margin-top:var(--s2)}
+.demo-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:8px 10px;font:inherit;
+  transition:border-color var(--dur-micro) var(--ease-out),transform var(--dur-micro) var(--ease-out),
+    background var(--dur-micro) var(--ease-out)}
+.demo-btn:hover{border-color:var(--indigo);background:var(--indigo-50);transform:translateY(-2px)}
+.demo-btn:active{transform:scale(.985)}
+.demo-btn b{font-size:var(--t12);text-transform:capitalize}
+.demo-btn .small{font-size:var(--t12);color:var(--muted);word-break:break-all}
+#pwMeter{margin-top:var(--s1)}
+@media (max-width:640px){.auth-wrap{place-items:start center;padding-top:var(--s3)}}
+
+/* ---- shrink safety: grid/flex children may go narrower than their min-content ---- */
+.grid > *, .split > *, .row > *{min-width:0}
+.card{min-width:0;overflow-wrap:anywhere}
+.scroll-x{max-width:100%;min-width:0}
+table{max-width:100%}
+.chart-wrap, .chart-wrap canvas{min-width:0;max-width:100%}
+
+@media(max-width:820px){
+  #targetChip{display:none}                      /* secondary info; it stays on the dashboard and profile */
+  .topbar h1{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar-right{margin-left:auto;flex:0 0 auto}
+}
+@media(max-width:640px){
+  .role-label{display:none}                      /* icon-only role chip on phones */
+  .role-chip{padding:5px 8px}
+}

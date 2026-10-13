@@ -129,6 +129,9 @@ java -Dplaceiq.db=data/demo2.db -cp "bin:lib/*" placeiq.Main
 
 # optional headless UI walkthrough (needs Node + jsdom)
 npm i jsdom && node tools/ui-smoke.js
+
+# optional layout check in real Chrome (catches overflow/responsive bugs)
+npm i puppeteer && node tools/ui-layout-check.js
 ```
 
 ---
